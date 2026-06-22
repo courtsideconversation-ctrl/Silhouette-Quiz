@@ -331,7 +331,7 @@ function startGame() {
   showScreen('screen-game');
   nextPlayer();
   startTimer();
-  document.getElementById('name-input').focus();
+  if (window.innerWidth > 600) document.getElementById('name-input').focus();
 }
 
 function startTimer(resume = false) {
@@ -537,7 +537,7 @@ document.getElementById('btn-skip').addEventListener('click', markSkip);
 document.getElementById('btn-next').addEventListener('click', () => {
   document.getElementById('btn-next').classList.remove('show');
   nextPlayer();
-  document.getElementById('name-input').focus();
+  if (window.innerWidth > 600) document.getElementById('name-input').focus();
   startTimer(true); // resume — don't reset progress bar
 });
 
