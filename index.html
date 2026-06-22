@@ -182,12 +182,12 @@
 
   <!-- Guess rows -->
   <div class="guess-list" id="guess-list"></div>
-  <button class="btn-share" id="btn-see-results" style="display:none" onclick="document.getElementById('result-modal').classList.add('show')">See results</button>
+  <button class="btn-share" id="btn-see-results" style="display:none" onclick="document.getElementById('result-modal').classList.add('show'); document.body.style.overflow='hidden'">See results</button>
 
   <!-- Result modal -->
   <div class="modal-overlay" id="result-modal">
     <div class="modal">
-      <button class="modal-close" onclick="document.getElementById('result-modal').classList.remove('show')">✕</button>
+      <button class="modal-close" onclick="document.getElementById('result-modal').classList.remove('show'); document.body.style.overflow = '';">✕</button>
       <div class="result-label" id="result-label">The player was</div>
       <div class="result-name" id="result-name"></div>
       <div class="result-rank" id="result-rank"></div>
@@ -391,6 +391,7 @@ function showResult(animate) {
   setInterval(updateCountdown, 1000);
 
   document.getElementById('result-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
 
   // Swap video to reveal
   const vid = document.getElementById('silo-video');
