@@ -42,12 +42,10 @@
 
   .content { flex: 1; position: relative; overflow: hidden; }
 
-  /* ── Landing page ── */
   #landing {
     position: absolute; inset: 0; overflow-y: auto;
     display: flex; flex-direction: column; align-items: center;
-    padding: 48px 24px 64px;
-    gap: 40px;
+    padding: 48px 24px 64px; gap: 40px;
   }
   .hero { text-align: center; max-width: 480px; }
   .hero-title {
@@ -66,11 +64,7 @@
     cursor: pointer; transition: border-color 0.15s, transform 0.1s;
   }
   .game-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .game-icon { font-size: 36px; }
-  .game-name {
-    font-family: var(--font-display); font-size: 22px; font-weight: 700;
-    color: var(--text);
-  }
+  .game-name { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text); }
   .game-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
   .game-btn {
     margin-top: auto; padding: 12px; border: none; border-radius: 8px;
@@ -80,15 +74,9 @@
   }
   .game-btn:hover { background: var(--accent-dim); }
 
-  /* ── Game iframe ── */
-  #game-frame {
-    position: absolute; inset: 0;
-    display: none;
-  }
+  #game-frame { position: absolute; inset: 0; display: none; }
   #game-frame.show { display: block; }
-  #game-frame iframe {
-    width: 100%; height: 100%; border: none;
-  }
+  #game-frame iframe { width: 100%; height: 100%; border: none; }
 
   @media (max-width: 480px) {
     .hero-title { font-size: 32px; }
@@ -101,14 +89,13 @@
 
 <header>
   <a href="https://courtsideconversation.com">
-    <img src="https://classy-khapse-a7a8c5.netlify.app/logo.png" alt="CourtsideConversation" style="height:38px;">
+    <img src="https://courtsideconversation-ctrl.github.io/ATP-Quiz/logo.png" alt="CourtsideConversation" style="height:38px;">
   </a>
   <button class="back-btn" id="back-btn" onclick="goHome()">← Back to games</button>
 </header>
 
 <div class="content">
 
-  <!-- Landing -->
   <div id="landing">
     <div class="hero">
       <h1 class="hero-title">Tennis<br><em>Quizzes</em></h1>
@@ -116,25 +103,19 @@
     </div>
 
     <div class="games-grid">
-
       <div class="game-card" onclick="launchGame('atp')">
-        
         <div class="game-name">ATP Photo Quiz</div>
         <div class="game-desc">Name as many ATP Top 100 players as you can from their headshots. Updated every Monday.</div>
         <button class="game-btn">Play now</button>
       </div>
-
       <div class="game-card" onclick="launchGame('silhouette')">
-        
         <div class="game-name">Silhouette Game</div>
         <div class="game-desc">Can you name ATP players from their silhouette alone?</div>
         <button class="game-btn">Play now</button>
       </div>
-
     </div>
   </div>
 
-  <!-- Game frame -->
   <div id="game-frame">
     <iframe id="iframe" src="" allow="autoplay"></iframe>
   </div>
@@ -143,7 +124,7 @@
 
 <script>
   const URLS = {
-    atp:        'https://classy-khapse-a7a8c5.netlify.app',
+    atp:        'https://courtsideconversation-ctrl.github.io/ATP-Quiz/',
     silhouette: 'https://courtsideconversation-ctrl.github.io/Silhouette-Quiz/'
   };
 
