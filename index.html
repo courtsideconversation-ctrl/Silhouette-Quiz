@@ -101,11 +101,13 @@
 
   /* ── Result modal ── */
   .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-    display: none; align-items: center; justify-content: center;
+    position: absolute; top: 0; left: 0; width: 100%; min-height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: none; align-items: flex-start; justify-content: center;
     z-index: 300; padding: 24px; backdrop-filter: blur(4px);
   }
   .modal-overlay.show { display: flex; }
+  .modal-overlay .modal { margin-top: 10vh; }
 
   .modal {
     background: var(--surface); border: 1px solid var(--border);
@@ -182,7 +184,7 @@
 
   <!-- Guess rows -->
   <div class="guess-list" id="guess-list"></div>
-  <button class="btn-share" id="btn-see-results" style="display:none" onclick="document.getElementById('result-modal').classList.add('show'); document.body.style.overflow='hidden'">See results</button>
+  <button class="btn-share" id="btn-see-results" style="display:none" onclick="document.getElementById('result-modal').classList.add('show'); document.body.style.overflow='hidden'; window.scrollTo(0,0)">See results</button>
 
   <!-- Result modal -->
   <div class="modal-overlay" id="result-modal">
@@ -392,6 +394,7 @@ function showResult(animate) {
 
   document.getElementById('result-modal').classList.add('show');
   document.body.style.overflow = 'hidden';
+  window.scrollTo(0, 0);
 
   // Swap video to reveal
   const vid = document.getElementById('silo-video');
