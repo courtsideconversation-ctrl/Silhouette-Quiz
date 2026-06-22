@@ -12,9 +12,9 @@ import json
 import pathlib
 
 REPO_ROOT    = pathlib.Path(__file__).parent.parent
-SIL_DIR      = REPO_ROOT / "game" / "silhouettes"
-REVEAL_DIR   = REPO_ROOT / "game" / "reveals"
-MANIFEST_OUT = REPO_ROOT / "game" / "data" / "silhouettes.json"
+SIL_DIR      = REPO_ROOT / "silhouettes"
+REVEAL_DIR   = REPO_ROOT / "reveals"
+MANIFEST_OUT = REPO_ROOT / "data" / "silhouettes.json"
 
 SIL_DIR.mkdir(parents=True, exist_ok=True)
 REVEAL_DIR.mkdir(parents=True, exist_ok=True)
