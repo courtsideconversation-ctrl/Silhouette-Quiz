@@ -269,6 +269,7 @@ function checkSavedState() {
     if (gameOver) showResult(false);
   } else {
     renderGame();
+    if (window.innerWidth > 600) document.getElementById('guess-input').focus();
   }
 }
 
