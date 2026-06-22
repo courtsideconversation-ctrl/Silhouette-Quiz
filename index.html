@@ -99,16 +99,40 @@
   .dropdown-item:hover, .dropdown-item.highlighted { background: var(--surface2); }
   .dropdown-item .item-meta { font-size: 12px; color: var(--muted); }
 
-  /* ── Result screen ── */
-  .result-box {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px; text-align: center;
-    display: none; flex-direction: column; gap: 12px;
+  /* ── Result modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center;
+    z-index: 300; padding: 24px; backdrop-filter: blur(4px);
   }
-  .result-box.show { display: flex; }
-  .result-label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-  .result-name { font-family: var(--font-display); font-size: 28px; font-weight: 900; color: var(--accent); }
-  .result-rank { font-size: 13px; color: var(--muted); }
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px 24px 24px;
+    width: 100%; max-width: 400px; display: flex; flex-direction: column;
+    gap: 16px; position: relative;
+    animation: popIn 0.25s ease;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
+  .modal-close {
+    position: absolute; top: 14px; right: 14px;
+    background: transparent; border: 1px solid var(--border); border-radius: 6px;
+    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .modal-close:hover { border-color: var(--text); color: var(--text); }
+
+  .result-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; text-align: center; }
+  .result-name { font-family: var(--font-display); font-size: 32px; font-weight: 900; color: var(--accent); text-align: center; }
+  .result-rank { font-size: 13px; color: var(--muted); text-align: center; }
+
+  .result-squares { font-size: 22px; text-align: center; letter-spacing: 3px; }
 
   .btn-share {
     padding: 14px; border: none; border-radius: var(--radius);
@@ -159,13 +183,17 @@
   <!-- Guess rows -->
   <div class="guess-list" id="guess-list"></div>
 
-  <!-- Result -->
-  <div class="result-box" id="result-box">
-    <div class="result-label" id="result-label">The player was</div>
-    <div class="result-name" id="result-name"></div>
-    <div class="result-rank" id="result-rank"></div>
-    <button class="btn-share" id="btn-share">Share result</button>
-    <div class="next-puzzle" id="next-puzzle"></div>
+  <!-- Result modal -->
+  <div class="modal-overlay" id="result-modal">
+    <div class="modal">
+      <button class="modal-close" onclick="document.getElementById('result-modal').classList.remove('show')">✕</button>
+      <div class="result-label" id="result-label">The player was</div>
+      <div class="result-name" id="result-name"></div>
+      <div class="result-rank" id="result-rank"></div>
+      <div class="result-squares" id="result-squares"></div>
+      <button class="btn-share" id="btn-share">Share result</button>
+      <div class="next-puzzle" id="next-puzzle"></div>
+    </div>
   </div>
 
   <!-- Already played today -->
@@ -269,7 +297,6 @@ function checkSavedState() {
     if (gameOver) showResult(false);
   } else {
     renderGame();
-    if (window.innerWidth > 600) document.getElementById('guess-input').focus();
   }
 }
 
@@ -348,20 +375,19 @@ function submitGuess(player) {
 
 function showResult(animate) {
   const won = guesses.some(g => g.correct);
-  const box = document.getElementById('result-box');
 
   document.getElementById('result-label').textContent = won ? '🎉 Correct!' : 'The player was';
   document.getElementById('result-name').textContent  = todayPlayer.name;
   document.getElementById('result-rank').textContent  = `ATP Rank #${todayPlayer.rank} · ${todayPlayer.country}`;
+  document.getElementById('result-squares').textContent = guesses.map(g => g.correct ? '🟩' : '🟥').join('');
 
-  // Countdown to next puzzle
   function updateCountdown() {
     document.getElementById('next-puzzle').innerHTML = `Next puzzle in <strong>${getTimeUntilMidnight()}</strong>`;
   }
   updateCountdown();
   setInterval(updateCountdown, 1000);
 
-  box.classList.add('show');
+  document.getElementById('result-modal').classList.add('show');
 
   // Swap video to reveal
   const vid = document.getElementById('silo-video');
@@ -379,7 +405,7 @@ document.getElementById('btn-share').addEventListener('click', () => {
   const squares = guesses.map(g => g.correct ? '🟩' : '🟥').join('');
   const text    = `Silhouette #${dayIdx} ${score}/${MAX_GUESSES}\n${squares}\ncourtsideconversation-ctrl.github.io/Game-Hub/`;
   navigator.clipboard.writeText(text).then(() => {
-    document.getElementById('btn-share').textContent = 'Copied!';
+    document.getElementById('btn-share').textContent = 'Copied! ✓';
     setTimeout(() => document.getElementById('btn-share').textContent = 'Share result', 2000);
   });
 });
