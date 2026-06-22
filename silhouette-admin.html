@@ -154,8 +154,9 @@
 <div id="gate">
   <div class="gate-box">
     <div class="gate-title">Silhouette <em>Admin</em></div>
-    <p style="font-size:13px;color:var(--muted)">Enter the admin password to continue.</p>
-    <input type="password" class="gate-input" id="gate-input" placeholder="••••••••" onkeydown="if(event.key==='Enter') checkPassword()">
+    <p style="font-size:13px;color:var(--muted)">Enter the admin password and your GitHub token.</p>
+    <input type="password" class="gate-input" id="gate-input" placeholder="Admin password" onkeydown="if(event.key==='Enter') checkPassword()">
+    <input type="password" class="gate-input" id="gate-token" placeholder="GitHub token (ghp_...)" onkeydown="if(event.key==='Enter') checkPassword()">
     <button class="btn-upload" onclick="checkPassword()">Enter</button>
     <p class="gate-error" id="gate-error">Incorrect password.</p>
   </div>
@@ -212,7 +213,7 @@
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
 const ADMIN_PASSWORD = 'courtside2026';
-const GITHUB_TOKEN   = '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';
+let GITHUB_TOKEN     = '';
 const REPO_OWNER     = 'courtsideconversation-ctrl';
 const REPO_NAME      = 'Silhouette-Quiz';
 const BRANCH         = 'main';
@@ -228,12 +229,18 @@ let pendingReveal = null;
 
 // ── Password ──────────────────────────────────────────────────────────────────
 function checkPassword() {
-  const val = document.getElementById('gate-input').value;
-  if (val === ADMIN_PASSWORD) {
+  const val   = document.getElementById('gate-input').value;
+  const token = document.getElementById('gate-token').value.trim();
+  if (val === ADMIN_PASSWORD && token.startsWith('ghp_')) {
+    GITHUB_TOKEN = token;
     document.getElementById('gate').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     loadData();
+  } else if (val !== ADMIN_PASSWORD) {
+    document.getElementById('gate-error').textContent = 'Incorrect password.';
+    document.getElementById('gate-error').style.display = 'block';
   } else {
+    document.getElementById('gate-error').textContent = 'Please enter a valid GitHub token (starts with ghp_).';
     document.getElementById('gate-error').style.display = 'block';
   }
 }
