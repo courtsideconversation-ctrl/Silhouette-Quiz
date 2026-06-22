@@ -84,10 +84,10 @@
   #guess-input:disabled { opacity: 0.4; }
 
   .dropdown {
-    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    position: absolute; bottom: calc(100% + 4px); left: 0; right: 0;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     overflow: hidden; z-index: 100; display: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.4);
   }
   .dropdown.open { display: block; }
   .dropdown-item {
@@ -148,16 +148,16 @@
     <div class="guesses-left" id="guesses-left"></div>
   </div>
 
-  <!-- Guess rows -->
-  <div class="guess-list" id="guess-list"></div>
-
-  <!-- Input -->
+  <!-- Input (directly below silo) -->
   <div class="input-wrap" id="input-area" style="display:none">
     <div class="input-inner">
-      <input type="text" id="guess-input" placeholder="Type a player name…" autocomplete="off" autocorrect="off" spellcheck="false">
       <div class="dropdown" id="dropdown"></div>
+      <input type="text" id="guess-input" placeholder="Type a player name…" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
   </div>
+
+  <!-- Guess rows -->
+  <div class="guess-list" id="guess-list"></div>
 
   <!-- Result -->
   <div class="result-box" id="result-box">
