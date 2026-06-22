@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silhouette Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1e1e1e; --surface: #2a2a2a; --surface2: #333;
+    --accent: #a8c53a; --accent-dim: #6b8e3e;
+    --text: #f0f0f0; --muted: #888; --border: #3a3a3a;
+    --correct: #4caf6e; --wrong: #e25c5c;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --radius: 12px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+
+  /* ── Password gate ── */
+  #gate {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .gate-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 40px 32px; width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 16px;
+    text-align: center;
+  }
+  .gate-title { font-family: var(--font-display); font-size: 24px; font-weight: 900; }
+  .gate-title em { font-style: normal; color: var(--accent); }
+  .gate-input {
+    padding: 12px 16px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: var(--font-body); font-size: 15px; outline: none;
+    text-align: center; letter-spacing: 2px;
+  }
+  .gate-input:focus { border-color: var(--accent); }
+  .gate-error { font-size: 13px; color: var(--wrong); display: none; }
+
+  /* ── Main app ── */
+  #app { display: none; max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+  .app-header { margin-bottom: 24px; }
+  .app-title { font-family: var(--font-display); font-size: 28px; font-weight: 900; }
+  .app-title em { font-style: normal; color: var(--accent); }
+  .app-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .search-bar {
+    width: 100%; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-family: var(--font-body);
+    font-size: 15px; outline: none; margin-bottom: 16px; transition: border-color 0.15s;
+  }
+  .search-bar:focus { border-color: var(--accent); }
+
+  /* ── Player list ── */
+  .player-list { display: flex; flex-direction: column; gap: 8px; }
+  .player-row {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .player-row:hover { border-color: var(--accent); }
+  .player-row.has-both { border-color: var(--correct); }
+  .player-row.has-one  { border-color: #f0a030; }
+  .player-rank { font-size: 12px; color: var(--muted); min-width: 36px; }
+  .player-name { font-size: 15px; font-weight: 600; flex: 1; }
+  .player-country { font-size: 12px; color: var(--muted); }
+  .player-status { display: flex; gap: 6px; }
+  .status-pill {
+    font-size: 11px; padding: 3px 8px; border-radius: 100px; font-weight: 600;
+  }
+  .status-pill.silo  { background: rgba(168,197,58,0.15); color: var(--accent); border: 1px solid var(--accent); }
+  .status-pill.reveal { background: rgba(76,175,110,0.15); color: var(--correct); border: 1px solid var(--correct); }
+  .status-pill.missing { background: rgba(136,136,136,0.1); color: var(--muted); border: 1px solid var(--border); }
+
+  /* ── Upload modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; padding: 24px; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px 24px;
+    width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 18px;
+    position: relative; animation: popIn 0.2s ease;
+  }
+  @keyframes popIn { from { transform: scale(0.93); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-close {
+    position: absolute; top: 14px; right: 14px;
+    background: transparent; border: 1px solid var(--border); border-radius: 6px;
+    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); cursor: pointer; font-size: 16px; transition: border-color 0.15s, color 0.15s;
+  }
+  .modal-close:hover { border-color: var(--text); color: var(--text); }
+  .modal-player { font-family: var(--font-display); font-size: 22px; font-weight: 900; }
+  .modal-player span { color: var(--accent); }
+  .modal-id { font-size: 12px; color: var(--muted); }
+
+  .upload-section { display: flex; flex-direction: column; gap: 8px; }
+  .upload-label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .upload-sub { font-size: 12px; color: var(--muted); }
+
+  .drop-zone {
+    border: 2px dashed var(--border); border-radius: 8px; padding: 20px;
+    text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(168,197,58,0.05); }
+  .drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop-zone-text { font-size: 13px; color: var(--muted); pointer-events: none; }
+  .drop-zone-text strong { color: var(--accent); }
+  .drop-zone.has-file { border-color: var(--correct); background: rgba(76,175,110,0.05); }
+  .drop-zone.has-file .drop-zone-text { color: var(--correct); }
+
+  .existing-badge {
+    font-size: 12px; color: var(--correct); background: rgba(76,175,110,0.1);
+    border: 1px solid var(--correct); border-radius: 6px; padding: 6px 10px;
+    display: none;
+  }
+  .existing-badge.show { display: block; }
+
+  .btn-upload {
+    padding: 14px; border: none; border-radius: var(--radius);
+    background: var(--accent); color: #1a1a1a; font-family: var(--font-body);
+    font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-upload:hover { background: var(--accent-dim); }
+  .btn-upload:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .upload-progress {
+    font-size: 13px; color: var(--muted); text-align: center; display: none; line-height: 1.7;
+  }
+  .upload-progress.show { display: block; }
+  .upload-success { color: var(--correct); }
+  .upload-error { color: var(--wrong); }
+
+  /* ── Shared button ── */
+  .btn {
+    padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px;
+    background: transparent; color: var(--muted); font-family: var(--font-body);
+    font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--text); color: var(--text); }
+
+  .loading { text-align: center; color: var(--muted); padding: 40px; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<!-- Password gate -->
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-title">Silhouette <em>Admin</em></div>
+    <p style="font-size:13px;color:var(--muted)">Enter the admin password to continue.</p>
+    <input type="password" class="gate-input" id="gate-input" placeholder="••••••••" onkeydown="if(event.key==='Enter') checkPassword()">
+    <button class="btn-upload" onclick="checkPassword()">Enter</button>
+    <p class="gate-error" id="gate-error">Incorrect password.</p>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="app">
+  <div class="app-header">
+    <h1 class="app-title">Silhouette <em>Admin</em></h1>
+    <p class="app-sub">Click a player to upload their silhouette and reveal clips. Green = both uploaded, orange = one missing.</p>
+  </div>
+  <input type="text" class="search-bar" id="search-bar" placeholder="Search players…" oninput="filterPlayers()">
+  <div class="player-list" id="player-list">
+    <div class="loading">Loading players…</div>
+  </div>
+</div>
+
+<!-- Upload modal -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div>
+      <div class="modal-player" id="modal-player-name">Player Name</div>
+      <div class="modal-id" id="modal-player-id"></div>
+    </div>
+
+    <!-- Silhouette upload -->
+    <div class="upload-section">
+      <div class="upload-label">Silhouette clip</div>
+      <div class="upload-sub">Green silhouette MP4 (the one that plays during the puzzle)</div>
+      <div class="existing-badge" id="silo-existing">✓ Silhouette already uploaded — drop a new file to replace</div>
+      <div class="drop-zone" id="silo-drop">
+        <input type="file" accept="video/mp4,video/*" onchange="handleFile('silo', this.files[0])">
+        <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+      </div>
+    </div>
+
+    <!-- Reveal upload -->
+    <div class="upload-section">
+      <div class="upload-label">Reveal clip</div>
+      <div class="upload-sub">Original color MP4 (shown after the player answers)</div>
+      <div class="existing-badge" id="reveal-existing">✓ Reveal already uploaded — drop a new file to replace</div>
+      <div class="drop-zone" id="reveal-drop">
+        <input type="file" accept="video/mp4,video/*" onchange="handleFile('reveal', this.files[0])">
+        <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+      </div>
+    </div>
+
+    <div class="upload-progress" id="upload-progress"></div>
+    <button class="btn-upload" id="btn-upload" onclick="uploadFiles()" disabled>Upload files</button>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const ADMIN_PASSWORD = 'courtside2026';
+const GITHUB_TOKEN   = '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';
+const REPO_OWNER     = 'courtsideconversation-ctrl';
+const REPO_NAME      = 'Silhouette-Quiz';
+const BRANCH         = 'main';
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allPlayers    = [];
+let siloFiles     = new Set();
+let revealFiles   = new Set();
+let dailyOrder    = [];
+let selectedPlayer = null;
+let pendingSilo   = null;
+let pendingReveal = null;
+
+// ── Password ──────────────────────────────────────────────────────────────────
+function checkPassword() {
+  const val = document.getElementById('gate-input').value;
+  if (val === ADMIN_PASSWORD) {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('gate-error').style.display = 'block';
+  }
+}
+
+// ── Load data ─────────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    // Fetch players.json
+    const pr = await fetch('data/players.json');
+    allPlayers = await pr.json();
+
+    // Fetch existing file list from GitHub API
+    const [siloRes, revealRes, orderRes] = await Promise.all([
+      ghGet(`contents/silhouettes`),
+      ghGet(`contents/reveals`),
+      fetch('data/daily_order.json')
+    ]);
+
+    if (siloRes.ok) {
+      const files = await siloRes.json();
+      files.forEach(f => siloFiles.add(parseInt(f.name)));
+    }
+    if (revealRes.ok) {
+      const files = await revealRes.json();
+      files.forEach(f => revealFiles.add(parseInt(f.name)));
+    }
+    if (orderRes.ok) {
+      dailyOrder = await orderRes.json();
+    }
+
+    renderList(allPlayers);
+  } catch (e) {
+    document.getElementById('player-list').innerHTML = `<div class="loading" style="color:var(--wrong)">Error loading data: ${e.message}</div>`;
+  }
+}
+
+// ── GitHub API helpers ────────────────────────────────────────────────────────
+function ghGet(path) {
+  return fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/${path}`, {
+    headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+  });
+}
+
+async function ghPut(path, content, message, sha) {
+  const body = { message, content, branch: BRANCH };
+  if (sha) body.sha = sha;
+  const r = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(`GitHub API error: ${r.status}`);
+  return r.json();
+}
+
+async function ghGetSha(path) {
+  const r = await ghGet(`contents/${path}`);
+  if (!r.ok) return null;
+  const data = await r.json();
+  return data.sha;
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload  = () => res(reader.result.split(',')[1]);
+    reader.onerror = rej;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Render player list ────────────────────────────────────────────────────────
+function renderList(players) {
+  const list = document.getElementById('player-list');
+  if (players.length === 0) {
+    list.innerHTML = '<div class="loading">No players found.</div>';
+    return;
+  }
+  list.innerHTML = players.map(p => {
+    const hasSilo   = siloFiles.has(p.id);
+    const hasReveal = revealFiles.has(p.id);
+    const cls = hasSilo && hasReveal ? 'has-both' : (hasSilo || hasReveal ? 'has-one' : '');
+    return `
+      <div class="player-row ${cls}" onclick="openModal(${p.id})">
+        <span class="player-rank">#${p.rank}</span>
+        <span class="player-name">${p.name}</span>
+        <span class="player-country">${p.country || ''}</span>
+        <div class="player-status">
+          <span class="status-pill ${hasSilo ? 'silo' : 'missing'}">${hasSilo ? '✓ Silo' : 'No silo'}</span>
+          <span class="status-pill ${hasReveal ? 'reveal' : 'missing'}">${hasReveal ? '✓ Reveal' : 'No reveal'}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterPlayers() {
+  const q = document.getElementById('search-bar').value.toLowerCase();
+  const filtered = allPlayers.filter(p => p.name.toLowerCase().includes(q));
+  renderList(filtered);
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal(id) {
+  selectedPlayer = allPlayers.find(p => p.id === id);
+  pendingSilo    = null;
+  pendingReveal  = null;
+
+  document.getElementById('modal-player-name').textContent = selectedPlayer.name;
+  document.getElementById('modal-player-id').textContent   = `ID: ${selectedPlayer.id} · Rank #${selectedPlayer.rank} · ${selectedPlayer.country}`;
+
+  const hasSilo   = siloFiles.has(id);
+  const hasReveal = revealFiles.has(id);
+
+  document.getElementById('silo-existing').classList.toggle('show', hasSilo);
+  document.getElementById('reveal-existing').classList.toggle('show', hasReveal);
+
+  // Reset drop zones
+  ['silo', 'reveal'].forEach(type => {
+    const dz = document.getElementById(`${type}-drop`);
+    dz.classList.remove('has-file');
+    dz.querySelector('.drop-zone-text').innerHTML = 'Drop MP4 here or <strong>click to browse</strong>';
+    dz.querySelector('input').value = '';
+  });
+
+  document.getElementById('upload-progress').classList.remove('show');
+  document.getElementById('upload-progress').innerHTML = '';
+  document.getElementById('btn-upload').disabled = true;
+  document.getElementById('upload-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('upload-modal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// ── File handling ─────────────────────────────────────────────────────────────
+function handleFile(type, file) {
+  if (!file) return;
+  if (type === 'silo')   pendingSilo   = file;
+  if (type === 'reveal') pendingReveal = file;
+
+  const dz = document.getElementById(`${type}-drop`);
+  dz.classList.add('has-file');
+  dz.querySelector('.drop-zone-text').innerHTML = `✓ <strong>${file.name}</strong> selected`;
+
+  document.getElementById('btn-upload').disabled = !(pendingSilo || pendingReveal);
+}
+
+// Drag and drop
+['silo', 'reveal'].forEach(type => {
+  const dz = document.getElementById(`${type}-drop`);
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(type, file);
+  });
+});
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+async function uploadFiles() {
+  if (!selectedPlayer) return;
+  const btn      = document.getElementById('btn-upload');
+  const progress = document.getElementById('upload-progress');
+  btn.disabled   = true;
+  progress.classList.add('show');
+  progress.innerHTML = 'Uploading…';
+
+  try {
+    const id = selectedPlayer.id;
+    const tasks = [];
+
+    if (pendingSilo) {
+      tasks.push(async () => {
+        progress.innerHTML = 'Uploading silhouette…';
+        const b64 = await fileToBase64(pendingSilo);
+        const sha = await ghGetSha(`silhouettes/${id}.mp4`);
+        await ghPut(`silhouettes/${id}.mp4`, b64, `Add silhouette for ${selectedPlayer.name} (id ${id})`, sha);
+        siloFiles.add(id);
+      });
+    }
+
+    if (pendingReveal) {
+      tasks.push(async () => {
+        progress.innerHTML = pendingSilo ? 'Uploading reveal…' : 'Uploading reveal…';
+        const b64 = await fileToBase64(pendingReveal);
+        const sha = await ghGetSha(`reveals/${id}.mp4`);
+        await ghPut(`reveals/${id}.mp4`, b64, `Add reveal for ${selectedPlayer.name} (id ${id})`, sha);
+        revealFiles.add(id);
+      });
+    }
+
+    for (const task of tasks) await task();
+
+    // Update daily_order.json if player now has both files and isn't in the order yet
+    if (siloFiles.has(id) && revealFiles.has(id) && !dailyOrder.includes(id)) {
+      dailyOrder.push(id);
+      const b64 = btoa(JSON.stringify(dailyOrder));
+      const sha = await ghGetSha('data/daily_order.json');
+      await ghPut('data/daily_order.json', b64, `Add ${selectedPlayer.name} to daily order`, sha);
+      progress.innerHTML = `<span class="upload-success">✓ Uploaded and added to daily rotation!</span>`;
+    } else {
+      progress.innerHTML = `<span class="upload-success">✓ Uploaded successfully!</span>`;
+    }
+
+    // Update silhouettes.json manifest
+    const readyIds = [...siloFiles].filter(i => revealFiles.has(i)).sort((a,b) => a-b);
+    const siloB64  = btoa(JSON.stringify(readyIds));
+    const siloSha  = await ghGetSha('data/silhouettes.json');
+    await ghPut('data/silhouettes.json', siloB64, `Update silhouettes manifest`, siloSha);
+
+    renderList(document.getElementById('search-bar').value
+      ? allPlayers.filter(p => p.name.toLowerCase().includes(document.getElementById('search-bar').value.toLowerCase()))
+      : allPlayers);
+
+    btn.disabled = false;
+    pendingSilo = null;
+    pendingReveal = null;
+
+  } catch (e) {
+    progress.innerHTML = `<span class="upload-error">✗ Error: ${e.message}</span>`;
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
