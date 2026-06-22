@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guess the Player — Silhouette · CourtsideConversation</title>
+<title>Guess the Silhouette · CourtsideConversation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -27,116 +27,61 @@
     background: var(--bg); color: var(--text); font-family: var(--font-body);
     min-height: 100vh; display: flex; flex-direction: column; align-items: center;
   }
-  header {
-    width: 100%; background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
-  }
   main {
-    width: 100%; max-width: 560px; padding: 32px 16px 64px;
-    display: flex; flex-direction: column; gap: 20px;
+    width: 100%; max-width: 520px; padding: 24px 16px 64px;
+    display: flex; flex-direction: column; gap: 16px;
   }
-  .screen { display: none; flex-direction: column; gap: 20px; }
-  .screen.active { display: flex; }
 
-  .game-title { font-family: var(--font-display); font-size: 36px; line-height: 1.1; font-weight: 900; text-align: center; }
-  .game-title em { font-style: normal; color: var(--accent); }
-  .subtitle { text-align: center; color: var(--muted); font-size: 15px; line-height: 1.6; }
+  .page-title {
+    font-family: var(--font-display); font-size: 28px; font-weight: 900;
+    text-align: center; line-height: 1.1;
+  }
+  .page-title em { font-style: normal; color: var(--accent); }
+  .page-date { text-align: center; font-size: 13px; color: var(--muted); }
 
-  .mode-label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; text-align: center; }
-  .duration-row { display: flex; gap: 8px; justify-content: center; }
-  .dur-btn {
-    padding: 8px 20px; border: 1px solid var(--border); border-radius: 100px;
-    background: var(--surface); color: var(--muted); font-family: var(--font-body);
-    font-size: 14px; cursor: pointer; transition: all 0.15s;
+  /* ── Silhouette card ── */
+  .silo-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; position: relative;
   }
-  .dur-btn.active { border-color: var(--accent); color: var(--accent); }
+  .silo-wrap {
+    width: 100%; aspect-ratio: 4/3; background: #1a1a1a;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .silo-wrap video { width: 100%; height: 100%; object-fit: contain; }
 
-  .btn-start {
-    padding: 16px; border: none; border-radius: var(--radius); background: var(--accent);
-    color: #1a1a1a; font-family: var(--font-body); font-size: 16px; font-weight: 600;
-    cursor: pointer; transition: background 0.15s, transform 0.1s;
+  .guesses-left {
+    position: absolute; top: 10px; right: 12px;
+    background: rgba(0,0,0,0.7); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px; font-size: 12px; color: var(--muted);
+    backdrop-filter: blur(4px);
   }
-  .btn-start:hover { background: var(--accent-dim); }
-  .btn-start:active { transform: scale(0.98); }
-  .btn-start:disabled { opacity: 0.4; cursor: not-allowed; }
+  .guesses-left strong { color: var(--text); }
 
-  .hud {
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 20px;
+  /* ── Guess rows ── */
+  .guess-list { display: flex; flex-direction: column; gap: 8px; }
+  .guess-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; min-height: 48px;
   }
-  .hud-item { text-align: center; }
-  .hud-val { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1; }
-  .hud-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
-  #timer-val { color: var(--accent); }
-  #timer-val.danger { color: var(--wrong); }
+  .guess-row .guess-num { font-size: 12px; color: var(--muted); min-width: 16px; }
+  .guess-row .guess-name { font-size: 14px; font-weight: 500; flex: 1; }
+  .guess-row .guess-result { font-size: 18px; }
+  .guess-row.correct { border-color: var(--correct); background: rgba(76,175,110,0.1); }
+  .guess-row.wrong   { border-color: var(--wrong);   background: rgba(226,92,92,0.08); }
+  .guess-row.empty   { border-style: dashed; opacity: 0.4; }
 
-  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: -8px; }
-  .progress-fill { height: 100%; background: var(--accent); transition: width 1s linear, background 0.5s; }
-
-  .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: relative; }
-  .player-photo-wrap {
-    width: 100%; aspect-ratio: 4/3; max-height: 340px; background: #1a1a1a;
-    display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
-  }
-  .player-photo-wrap img { width: 100%; height: 100%; object-fit: contain; }
-  .rank-badge {
-    position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.7); border: 1px solid var(--border);
-    border-radius: 6px; padding: 4px 10px; font-size: 13px; color: var(--muted); backdrop-filter: blur(4px);
-    opacity: 0; transition: opacity 0.3s;
-  }
-  .rank-badge.show { opacity: 1; }
-  .rank-badge strong { color: var(--accent); }
-  .country-badge {
-    position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); border: 1px solid var(--border);
-    border-radius: 6px; padding: 5px 10px; font-size: 13px; font-weight: 600; backdrop-filter: blur(4px);
-    opacity: 0; transition: opacity 0.3s;
-  }
-  .country-badge.show { opacity: 1; }
-
-  .btn-next {
-    display: none; width: 100%; padding: 14px; border: none; border-radius: var(--radius);
-    background: var(--accent); color: #1a1a1a; font-family: var(--font-body);
-    font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
-  }
-  .btn-next.show { display: block; }
-  .btn-next:hover { background: var(--accent-dim); }
-  .reveal-badge {
-    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.75); border: 1px solid var(--accent); border-radius: 100px;
-    padding: 6px 16px; font-size: 12px; color: var(--accent); text-transform: uppercase;
-    letter-spacing: 0.06em; opacity: 0; transition: opacity 0.2s; white-space: nowrap;
-  }
-  .reveal-badge.show { opacity: 1; }
-
-  .answer-overlay {
-    position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 18px;
-    font-family: var(--font-display); font-size: 22px; font-weight: 700; text-align: center;
-    opacity: 0; transform: translateY(6px); transition: opacity 0.2s, transform 0.2s;
-  }
-  .answer-overlay.show { opacity: 1; transform: translateY(0); }
-  .answer-overlay.correct { background: rgba(76,175,110,0.92); color: #fff; }
-  .answer-overlay.wrong   { background: rgba(226,92,92,0.92); color: #fff; }
-  .answer-overlay.skip    { background: rgba(50,50,50,0.92); color: var(--muted); font-family: var(--font-body); font-size: 15px; }
-
-  /* ── Autocomplete input area ── */
-  .input-wrap {
-    position: relative;
-    display: flex;
-    gap: 8px;
-  }
-  .input-inner {
-    position: relative;
-    flex: 1;
-  }
-  #name-input {
+  /* ── Input area ── */
+  .input-wrap { position: relative; display: flex; gap: 8px; }
+  .input-inner { position: relative; flex: 1; }
+  #guess-input {
     width: 100%; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); color: var(--text); font-family: var(--font-body);
     font-size: 16px; outline: none; transition: border-color 0.15s;
   }
-  #name-input:focus  { border-color: var(--accent); }
-  #name-input.correct { border-color: var(--correct); }
-  #name-input.wrong   { border-color: var(--wrong); }
-  #name-input:disabled { opacity: 0.5; }
+  #guess-input:focus { border-color: var(--accent); }
+  #guess-input:disabled { opacity: 0.4; }
 
   .dropdown {
     position: absolute; top: calc(100% + 4px); left: 0; right: 0;
@@ -152,255 +97,302 @@
   }
   .dropdown-item:last-child { border-bottom: none; }
   .dropdown-item:hover, .dropdown-item.highlighted { background: var(--surface2); }
-  .dropdown-item .item-country { font-size: 12px; color: var(--muted); }
-  .dropdown-item .item-rank { font-size: 12px; color: var(--muted); }
+  .dropdown-item .item-meta { font-size: 12px; color: var(--muted); }
 
-  .btn-skip {
-    padding: 14px 18px; border: 1px solid var(--border); border-radius: var(--radius);
-    background: transparent; color: var(--muted); font-family: var(--font-body);
-    font-size: 14px; cursor: pointer; white-space: nowrap; transition: border-color 0.15s, color 0.15s;
-    align-self: flex-start;
+  /* ── Result screen ── */
+  .result-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; text-align: center;
+    display: none; flex-direction: column; gap: 12px;
   }
-  .btn-skip:hover { border-color: var(--text); color: var(--text); }
-  .btn-skip:disabled { opacity: 0.4; cursor: not-allowed; }
+  .result-box.show { display: flex; }
+  .result-label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .result-name { font-family: var(--font-display); font-size: 28px; font-weight: 900; color: var(--accent); }
+  .result-rank { font-size: 13px; color: var(--muted); }
 
-  .results-header { text-align: center; }
-  .results-score { font-family: var(--font-display); font-size: 64px; font-weight: 900; color: var(--accent); line-height: 1; }
-  .results-label { font-size: 15px; color: var(--muted); margin-top: 6px; }
-  .stat-row { display: flex; gap: 10px; }
-  .stat-box { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
-  .stat-val { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--text); }
-  .stat-lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-  .btn-play-again {
-    padding: 16px; border: none; border-radius: var(--radius); background: var(--accent);
-    color: #1a1a1a; font-family: var(--font-body); font-size: 16px; font-weight: 600;
-    cursor: pointer; transition: background 0.15s;
+  .btn-share {
+    padding: 14px; border: none; border-radius: var(--radius);
+    background: var(--accent); color: #1a1a1a; font-family: var(--font-body);
+    font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
   }
-  .btn-play-again:hover { background: var(--accent-dim); }
+  .btn-share:hover { background: var(--accent-dim); }
 
-  .loading-msg { text-align: center; color: var(--muted); padding: 40px 0; font-size: 15px; line-height: 1.6; }
-  .error-msg { text-align: center; color: var(--wrong); padding: 40px 0; font-size: 15px; line-height: 1.6; }
+  .next-puzzle { text-align: center; font-size: 13px; color: var(--muted); }
+  .next-puzzle strong { color: var(--text); }
 
-  @media (max-width: 480px) {
-    .game-title { font-size: 28px; }
-    .player-photo-wrap { max-height: 260px; }
+  .already-played {
+    text-align: center; color: var(--muted); font-size: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; line-height: 1.6;
   }
+
+  .loading-msg { text-align: center; color: var(--muted); padding: 40px 0; font-size: 15px; }
+  .error-msg { text-align: center; color: var(--wrong); padding: 20px 0; font-size: 14px; line-height: 1.6; }
 </style>
 </head>
 <body>
-
 <main>
-
-  <!-- ── Start screen ── -->
-  <div class="screen active" id="screen-start">
-    <div>
-      <h1 class="game-title">Guess the<br><em>Silhouette</em></h1>
-      <p class="subtitle" style="margin-top:10px">Watch the shape move. Name the player before time runs out.</p>
-    </div>
-    <div>
-      <p class="mode-label">Time limit</p>
-      <div class="duration-row">
-        <button class="dur-btn" data-secs="60">1 min</button>
-        <button class="dur-btn active" data-secs="120">2 min</button>
-        <button class="dur-btn" data-secs="180">3 min</button>
-      </div>
-    </div>
-    <button class="btn-start" id="btn-start" disabled>Loading…</button>
-    <p id="load-status" class="loading-msg">Loading players…</p>
+  <div>
+    <h1 class="page-title">Guess the <em>Silhouette</em></h1>
+    <p class="page-date" id="page-date"></p>
   </div>
 
-  <!-- ── Game screen ── -->
-  <div class="screen" id="screen-game">
-    <div class="hud">
-      <div class="hud-item"><div class="hud-val" id="timer-val">60</div><div class="hud-lbl">Seconds</div></div>
-      <div class="hud-item"><div class="hud-val" id="score-val">0</div><div class="hud-lbl">Correct</div></div>
-      <div class="hud-item"><div class="hud-val" id="asked-val">0</div><div class="hud-lbl">Asked</div></div>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div id="loading" class="loading-msg">Loading today's player…</div>
+  <div id="error" class="error-msg" style="display:none"></div>
 
-    <div class="player-card">
-      <div class="player-photo-wrap">
-        <video id="player-photo" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;"></video>
-        <div class="rank-badge" id="rank-badge">Rank <strong id="player-rank">#1</strong></div>
-        <div class="country-badge" id="country-badge">ESP</div>
-        <div class="reveal-badge" id="reveal-badge">Revealed</div>
-      </div>
-      <div class="answer-overlay" id="answer-overlay"></div>
+  <!-- Silhouette card -->
+  <div class="silo-card" id="silo-card" style="display:none">
+    <div class="silo-wrap">
+      <video id="silo-video" autoplay loop muted playsinline></video>
     </div>
-
-    <div class="input-wrap">
-      <div class="input-inner">
-        <input type="text" id="name-input" placeholder="Start typing a player name…" autocomplete="off" autocorrect="off" spellcheck="false">
-        <div class="dropdown" id="dropdown"></div>
-      </div>
-      <button class="btn-skip" id="btn-skip">Skip</button>
-    </div>
-    <button class="btn-next" id="btn-next">Next →</button>
+    <div class="guesses-left" id="guesses-left"></div>
   </div>
 
-  <!-- ── Results screen ── -->
-  <div class="screen" id="screen-results">
-    <div class="results-header">
-      <div class="results-score" id="final-score">0</div>
-      <div class="results-label">players identified</div>
+  <!-- Guess rows -->
+  <div class="guess-list" id="guess-list"></div>
+
+  <!-- Input -->
+  <div class="input-wrap" id="input-area" style="display:none">
+    <div class="input-inner">
+      <input type="text" id="guess-input" placeholder="Type a player name…" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="dropdown" id="dropdown"></div>
     </div>
-    <div class="stat-row">
-      <div class="stat-box"><div class="stat-val" id="stat-asked">0</div><div class="stat-lbl">Shown</div></div>
-      <div class="stat-box"><div class="stat-val" id="stat-acc">—</div><div class="stat-lbl">Accuracy</div></div>
-      <div class="stat-box"><div class="stat-val" id="stat-streak">0</div><div class="stat-lbl">Best streak</div></div>
-    </div>
-    <button class="btn-play-again" id="btn-play-again">Play again</button>
   </div>
 
+  <!-- Result -->
+  <div class="result-box" id="result-box">
+    <div class="result-label" id="result-label">The player was</div>
+    <div class="result-name" id="result-name"></div>
+    <div class="result-rank" id="result-rank"></div>
+    <button class="btn-share" id="btn-share">Share result</button>
+    <div class="next-puzzle" id="next-puzzle"></div>
+  </div>
+
+  <!-- Already played today -->
+  <div class="already-played" id="already-played" style="display:none"></div>
 </main>
 
 <script>
-let allPlayers = [];   // all 100 from players.json (used for autocomplete suggestions)
-let pool       = [];   // players that have both silhouette + reveal
-let queue = [], current = null;
-let totalSecs = 120, timer = null, secsLeft = 0;
-let score = 0, asked = 0, streak = 0, bestStreak = 0;
-let lockInput = false;
+const MAX_GUESSES = 6;
+const STORAGE_KEY = 'silhouette_wordle';
+
+let allPlayers = [];
+let dailyOrder = [];
+let todayPlayer = null;
+let guesses = [];
+let gameOver = false;
 let highlightedIndex = -1;
+
+// ── Date helpers ──────────────────────────────────────────────────────────────
+
+function getTodayStr() {
+  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
+function getDayIndex() {
+  // Days since a fixed epoch (June 23 2026 = day 0)
+  const epoch = new Date('2026-06-23T00:00:00Z');
+  const now   = new Date();
+  now.setUTCHours(0,0,0,0);
+  return Math.floor((now - epoch) / 86400000);
+}
+
+function getTimeUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date();
+  midnight.setHours(24, 0, 0, 0);
+  const diff = midnight - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${h}h ${m}m ${s}s`;
+}
 
 // ── Load data ─────────────────────────────────────────────────────────────────
 
-async function loadData() {
-  try {
-    const [pr, ir] = await Promise.all([fetch('data/players.json'), fetch('data/silhouettes.json')]);
-    if (!pr.ok) throw new Error('players.json missing');
-    allPlayers = await pr.json();
-    const ids = ir.ok ? await ir.json() : [];
-    const idSet = new Set(ids);
-    pool = allPlayers.filter(p => idSet.has(p.id));
+async function init() {
+  // Set date display
+  document.getElementById('page-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-    const statusEl = document.getElementById('load-status');
-    const btn = document.getElementById('btn-start');
-    if (pool.length === 0) {
-      statusEl.textContent = 'No silhouette clips added yet — check back soon!';
-      btn.disabled = true;
-      btn.textContent = 'No players yet';
-    } else {
-      statusEl.style.display = 'none';
-      btn.disabled = false;
-      btn.textContent = `Start game`;
-    }
+  try {
+    const [pr, or] = await Promise.all([
+      fetch('data/players.json'),
+      fetch('data/daily_order.json')
+    ]);
+    if (!pr.ok) throw new Error('players.json missing');
+    if (!or.ok) throw new Error('daily_order.json missing');
+
+    allPlayers  = await pr.json();
+    dailyOrder  = await or.json(); // array of player IDs in fixed order
+
+    const dayIdx    = getDayIndex();
+    const todayId   = dailyOrder[dayIdx % dailyOrder.length];
+    todayPlayer     = allPlayers.find(p => p.id === todayId);
+
+    if (!todayPlayer) throw new Error('Could not find today\'s player.');
+
+    document.getElementById('loading').style.display = 'none';
+    checkSavedState();
   } catch (e) {
-    document.getElementById('load-status').className = 'error-msg';
-    document.getElementById('load-status').textContent = 'Could not load player data.';
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = 'Could not load today\'s puzzle. ' + e.message;
   }
 }
-loadData();
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── State persistence ─────────────────────────────────────────────────────────
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
 }
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
-  return a;
+
+function saveState() {
+  const state = {
+    date:     getTodayStr(),
+    playerId: todayPlayer.id,
+    guesses,
+    gameOver
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
+
+function checkSavedState() {
+  const saved = loadState();
+  if (saved && saved.date === getTodayStr() && saved.playerId === todayPlayer.id) {
+    guesses  = saved.guesses;
+    gameOver = saved.gameOver;
+    renderGame();
+    if (gameOver) showResult(false);
+  } else {
+    renderGame();
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderGame() {
+  // Show silhouette card
+  document.getElementById('silo-card').style.display = '';
+  const vid = document.getElementById('silo-video');
+  if (!gameOver) {
+    vid.src = `silhouettes/${todayPlayer.id}.mp4`;
+  } else {
+    vid.src = `reveals/${todayPlayer.id}.mp4`;
+  }
+  vid.load(); vid.play();
+
+  // Guesses remaining
+  const remaining = MAX_GUESSES - guesses.length;
+  document.getElementById('guesses-left').innerHTML = `<strong>${remaining}</strong> guess${remaining === 1 ? '' : 'es'} left`;
+
+  // Render guess rows
+  const list = document.getElementById('guess-list');
+  list.innerHTML = '';
+  for (let i = 0; i < MAX_GUESSES; i++) {
+    const row = document.createElement('div');
+    if (i < guesses.length) {
+      const g = guesses[i];
+      row.className = `guess-row ${g.correct ? 'correct' : 'wrong'}`;
+      row.innerHTML = `
+        <span class="guess-num">${i + 1}</span>
+        <span class="guess-name">${g.name}</span>
+        <span class="guess-result">${g.correct ? '✓' : '✗'}</span>`;
+    } else {
+      row.className = 'guess-row empty';
+      row.innerHTML = `<span class="guess-num">${i + 1}</span><span class="guess-name" style="color:var(--border)">—</span>`;
+    }
+    list.appendChild(row);
+  }
+
+  // Show/hide input
+  if (!gameOver) {
+    document.getElementById('input-area').style.display = 'flex';
+  } else {
+    document.getElementById('input-area').style.display = 'none';
+    document.getElementById('guesses-left').style.display = 'none';
+  }
+}
+
+// ── Guess logic ───────────────────────────────────────────────────────────────
+
 function norm(s) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z\s]/g,'').trim();
 }
 
-// ── Toggles ───────────────────────────────────────────────────────────────────
+function submitGuess(player) {
+  if (gameOver) return;
+  const correct = player.id === todayPlayer.id;
+  guesses.push({ name: player.name, correct });
 
-document.querySelectorAll('.dur-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    totalSecs = parseInt(btn.dataset.secs);
+  if (correct || guesses.length >= MAX_GUESSES) {
+    gameOver = true;
+  }
+
+  saveState();
+  renderGame();
+
+  if (gameOver) {
+    setTimeout(() => showResult(true), 600);
+  }
+
+  document.getElementById('guess-input').value = '';
+  closeDropdown();
+}
+
+// ── Result screen ─────────────────────────────────────────────────────────────
+
+function showResult(animate) {
+  const won = guesses.some(g => g.correct);
+  const box = document.getElementById('result-box');
+
+  document.getElementById('result-label').textContent = won ? '🎉 Correct!' : 'The player was';
+  document.getElementById('result-name').textContent  = todayPlayer.name;
+  document.getElementById('result-rank').textContent  = `ATP Rank #${todayPlayer.rank} · ${todayPlayer.country}`;
+
+  // Countdown to next puzzle
+  function updateCountdown() {
+    document.getElementById('next-puzzle').innerHTML = `Next puzzle in <strong>${getTimeUntilMidnight()}</strong>`;
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  box.classList.add('show');
+
+  // Swap video to reveal
+  const vid = document.getElementById('silo-video');
+  vid.src = `reveals/${todayPlayer.id}.mp4`;
+  vid.load(); vid.play();
+  document.getElementById('guesses-left').style.display = 'none';
+}
+
+// ── Share ─────────────────────────────────────────────────────────────────────
+
+document.getElementById('btn-share').addEventListener('click', () => {
+  const won     = guesses.some(g => g.correct);
+  const dayIdx  = getDayIndex() + 1;
+  const score   = won ? guesses.length : 'X';
+  const squares = guesses.map(g => g.correct ? '🟩' : '🟥').join('');
+  const text    = `Silhouette #${dayIdx} ${score}/${MAX_GUESSES}\n${squares}\ncourtsideconversation-ctrl.github.io/Game-Hub/`;
+  navigator.clipboard.writeText(text).then(() => {
+    document.getElementById('btn-share').textContent = 'Copied!';
+    setTimeout(() => document.getElementById('btn-share').textContent = 'Share result', 2000);
   });
 });
 
-// ── Game flow ─────────────────────────────────────────────────────────────────
-
-document.getElementById('btn-start').addEventListener('click', startGame);
-document.getElementById('btn-play-again').addEventListener('click', () => showScreen('screen-start'));
-
-function startGame() {
-  score = 0; asked = 0; streak = 0; bestStreak = 0;
-  queue = shuffle(pool);
-  secsLeft = totalSecs;
-  updateHUD();
-  showScreen('screen-game');
-  nextPlayer();
-  startTimer();
-  if (window.innerWidth > 600) document.getElementById('name-input').focus();
-}
-
-function startTimer(resume = false) {
-  clearInterval(timer);
-  const fill = document.getElementById('progress-fill');
-  if (!resume) {
-    fill.style.width = '100%';
-    fill.style.background = 'var(--accent)';
-  }
-  timer = setInterval(() => {
-    secsLeft--;
-    const pct = (secsLeft / totalSecs) * 100;
-    document.getElementById('timer-val').textContent = secsLeft;
-    document.getElementById('timer-val').className = secsLeft <= 10 ? 'hud-val danger' : 'hud-val';
-    fill.style.width = pct + '%';
-    if (secsLeft <= 10) fill.style.background = 'var(--wrong)';
-    if (secsLeft <= 0) endGame();
-  }, 1000);
-}
-
-function nextPlayer() {
-  if (queue.length === 0) { queue = shuffle(pool); } // loop if small roster
-  current = queue.pop();
-  asked++;
-  lockInput = false;
-  highlightedIndex = -1;
-
-  const vid = document.getElementById('player-photo');
-  vid.src = `silhouettes/${current.id}.mp4`;
-  vid.load(); vid.play();
-
-  // Hide rank/country until reveal
-  document.getElementById('player-rank').textContent    = '#' + current.rank;
-  document.getElementById('country-badge').textContent  = current.country || '';
-  document.getElementById('rank-badge').classList.remove('show');
-  document.getElementById('country-badge').classList.remove('show');
-  document.getElementById('reveal-badge').classList.remove('show');
-
-  // Hide Next button, show input
-  document.getElementById('btn-next').classList.remove('show');
-  document.getElementById('name-input').disabled = false;
-  document.getElementById('btn-skip').disabled = false;
-  document.getElementById('btn-skip').style.display = '';
-
-  const ov = document.getElementById('answer-overlay');
-  ov.className = 'answer-overlay'; ov.textContent = '';
-
-  const inp = document.getElementById('name-input');
-  inp.value = ''; inp.className = '';
-  closeDropdown();
-  updateHUD();
-}
-
-function updateHUD() {
-  document.getElementById('score-val').textContent = score;
-  document.getElementById('asked-val').textContent = asked;
-  document.getElementById('timer-val').textContent = secsLeft;
-}
-
 // ── Autocomplete ──────────────────────────────────────────────────────────────
 
-const inp = document.getElementById('name-input');
+const inp      = document.getElementById('guess-input');
 const dropdown = document.getElementById('dropdown');
 
 function getSuggestions(query) {
   if (!query || query.length < 2) return [];
   const q = norm(query);
   return allPlayers.filter(p => {
-    const n = norm(p.name);
+    const n     = norm(p.name);
     const parts = n.split(' ');
     return n.startsWith(q) || parts.some(part => part.startsWith(q));
   }).slice(0, 6);
@@ -409,18 +401,17 @@ function getSuggestions(query) {
 function renderDropdown(suggestions) {
   if (suggestions.length === 0) { closeDropdown(); return; }
   dropdown.innerHTML = suggestions.map((p, i) => `
-    <div class="dropdown-item" data-index="${i}" data-id="${p.id}">
+    <div class="dropdown-item" data-index="${i}">
       <span>${p.name}</span>
-      <span class="item-country">${p.country || ''} &nbsp;<span class="item-rank">#${p.rank}</span></span>
+      <span class="item-meta">${p.country} · #${p.rank}</span>
     </div>`).join('');
   dropdown.classList.add('open');
   highlightedIndex = -1;
-
   dropdown.querySelectorAll('.dropdown-item').forEach(item => {
     item.addEventListener('mousedown', e => {
       e.preventDefault();
       const idx = parseInt(item.dataset.index);
-      selectSuggestion(suggestions[idx]);
+      submitGuess(suggestions[idx]);
     });
   });
 }
@@ -431,28 +422,12 @@ function closeDropdown() {
   highlightedIndex = -1;
 }
 
-function selectSuggestion(player) {
-  inp.value = player.name;
-  closeDropdown();
-  if (player.id === current.id) {
-    inp.className = 'correct';
-    markCorrect();
-  } else {
-    inp.className = 'wrong';
-    markWrong(player.name);
-  }
-}
-
 inp.addEventListener('input', () => {
-  if (lockInput) return;
-  const suggestions = getSuggestions(inp.value);
-  renderDropdown(suggestions);
+  renderDropdown(getSuggestions(inp.value));
 });
 
 inp.addEventListener('keydown', e => {
-  if (lockInput) return;
   const items = dropdown.querySelectorAll('.dropdown-item');
-
   if (e.key === 'ArrowDown') {
     e.preventDefault();
     highlightedIndex = Math.min(highlightedIndex + 1, items.length - 1);
@@ -461,97 +436,18 @@ inp.addEventListener('keydown', e => {
     e.preventDefault();
     highlightedIndex = Math.max(highlightedIndex - 1, 0);
     items.forEach((el, i) => el.classList.toggle('highlighted', i === highlightedIndex));
-  } else if (e.key === 'Enter') {
+  } else if (e.key === 'Enter' && highlightedIndex >= 0) {
     e.preventDefault();
-    if (highlightedIndex >= 0 && items[highlightedIndex]) {
-      items[highlightedIndex].dispatchEvent(new Event('mousedown'));
-    }
+    items[highlightedIndex].dispatchEvent(new Event('mousedown'));
   } else if (e.key === 'Escape') {
     closeDropdown();
-    markSkip();
   }
 });
 
-inp.addEventListener('blur', () => {
-  setTimeout(closeDropdown, 150);
-});
+inp.addEventListener('blur', () => setTimeout(closeDropdown, 150));
 
-// ── Answer handling ───────────────────────────────────────────────────────────
-
-function flashOverlay(type, text) {
-  const ov = document.getElementById('answer-overlay');
-  ov.textContent = text; ov.className = `answer-overlay ${type} show`;
-}
-
-function revealAndAdvance() {
-  // Pause timer
-  clearInterval(timer);
-
-  // Swap to reveal clip
-  const vid = document.getElementById('player-photo');
-  vid.src = `reveals/${current.id}.mp4`;
-  vid.load(); vid.play();
-
-  // Show rank, country, reveal badge
-  document.getElementById('rank-badge').classList.add('show');
-  document.getElementById('country-badge').classList.add('show');
-  document.getElementById('reveal-badge').classList.add('show');
-
-  // Hide skip, show Next button
-  document.getElementById('btn-skip').style.display = 'none';
-  document.getElementById('btn-next').classList.add('show');
-}
-
-function markCorrect() {
-  if (lockInput) return; lockInput = true;
-  score++; streak++;
-  if (streak > bestStreak) bestStreak = streak;
-  flashOverlay('correct', '✓ ' + current.name);
-  inp.disabled = true;
-  document.getElementById('btn-skip').disabled = true;
-  updateHUD();
-  revealAndAdvance();
-}
-
-function markWrong(guessedName) {
-  if (lockInput) return; lockInput = true;
-  streak = 0;
-  flashOverlay('wrong', '✗ ' + current.name);
-  inp.disabled = true;
-  document.getElementById('btn-skip').disabled = true;
-  updateHUD();
-  revealAndAdvance();
-}
-
-function markSkip() {
-  if (lockInput) return; lockInput = true;
-  streak = 0;
-  flashOverlay('skip', current.name);
-  inp.disabled = true;
-  document.getElementById('btn-skip').disabled = true;
-  revealAndAdvance();
-}
-
-document.getElementById('btn-skip').addEventListener('click', markSkip);
-
-document.getElementById('btn-next').addEventListener('click', () => {
-  document.getElementById('btn-next').classList.remove('show');
-  nextPlayer();
-  if (window.innerWidth > 600) document.getElementById('name-input').focus();
-  startTimer(true); // resume — don't reset progress bar
-});
-
-// ── End game ──────────────────────────────────────────────────────────────────
-
-function endGame() {
-  clearInterval(timer);
-  closeDropdown();
-  document.getElementById('final-score').textContent = score;
-  document.getElementById('stat-asked').textContent  = asked;
-  document.getElementById('stat-acc').textContent    = asked > 0 ? Math.round((score / asked) * 100) + '%' : '—';
-  document.getElementById('stat-streak').textContent = bestStreak;
-  showScreen('screen-results');
-}
+// ── Start ─────────────────────────────────────────────────────────────────────
+init();
 </script>
 </body>
 </html>
