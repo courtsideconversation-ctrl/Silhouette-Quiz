@@ -82,12 +82,24 @@
   .rank-badge {
     position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.7); border: 1px solid var(--border);
     border-radius: 6px; padding: 4px 10px; font-size: 13px; color: var(--muted); backdrop-filter: blur(4px);
+    opacity: 0; transition: opacity 0.3s;
   }
+  .rank-badge.show { opacity: 1; }
   .rank-badge strong { color: var(--accent); }
   .country-badge {
     position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); border: 1px solid var(--border);
     border-radius: 6px; padding: 5px 10px; font-size: 13px; font-weight: 600; backdrop-filter: blur(4px);
+    opacity: 0; transition: opacity 0.3s;
   }
+  .country-badge.show { opacity: 1; }
+
+  .btn-next {
+    display: none; width: 100%; padding: 14px; border: none; border-radius: var(--radius);
+    background: var(--accent); color: #1a1a1a; font-family: var(--font-body);
+    font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-next.show { display: block; }
+  .btn-next:hover { background: var(--accent-dim); }
   .reveal-badge {
     position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
     background: rgba(0,0,0,0.75); border: 1px solid var(--accent); border-radius: 100px;
@@ -210,8 +222,8 @@
     <div class="player-card">
       <div class="player-photo-wrap">
         <video id="player-photo" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;"></video>
-        <div class="rank-badge">Rank <strong id="player-rank">#1</strong></div>
-        <div class="country-badge" id="player-country">ESP</div>
+        <div class="rank-badge" id="rank-badge">Rank <strong id="player-rank">#1</strong></div>
+        <div class="country-badge" id="country-badge">ESP</div>
         <div class="reveal-badge" id="reveal-badge">Revealed</div>
       </div>
       <div class="answer-overlay" id="answer-overlay"></div>
@@ -224,6 +236,7 @@
       </div>
       <button class="btn-skip" id="btn-skip">Skip</button>
     </div>
+    <button class="btn-next" id="btn-next">Next →</button>
   </div>
 
   <!-- ── Results screen ── -->
@@ -321,11 +334,13 @@ function startGame() {
   document.getElementById('name-input').focus();
 }
 
-function startTimer() {
+function startTimer(resume = false) {
   clearInterval(timer);
   const fill = document.getElementById('progress-fill');
-  fill.style.width = '100%';
-  fill.style.background = 'var(--accent)';
+  if (!resume) {
+    fill.style.width = '100%';
+    fill.style.background = 'var(--accent)';
+  }
   timer = setInterval(() => {
     secsLeft--;
     const pct = (secsLeft / totalSecs) * 100;
@@ -347,16 +362,25 @@ function nextPlayer() {
   const vid = document.getElementById('player-photo');
   vid.src = `silhouettes/${current.id}.mp4`;
   vid.load(); vid.play();
+
+  // Hide rank/country until reveal
   document.getElementById('player-rank').textContent    = '#' + current.rank;
-  document.getElementById('player-country').textContent = current.country || '';
+  document.getElementById('country-badge').textContent  = current.country || '';
+  document.getElementById('rank-badge').classList.remove('show');
+  document.getElementById('country-badge').classList.remove('show');
   document.getElementById('reveal-badge').classList.remove('show');
+
+  // Hide Next button, show input
+  document.getElementById('btn-next').classList.remove('show');
+  document.getElementById('name-input').disabled = false;
+  document.getElementById('btn-skip').disabled = false;
+  document.getElementById('btn-skip').style.display = '';
 
   const ov = document.getElementById('answer-overlay');
   ov.className = 'answer-overlay'; ov.textContent = '';
 
   const inp = document.getElementById('name-input');
-  inp.value = ''; inp.className = ''; inp.disabled = false;
-  document.getElementById('btn-skip').disabled = false;
+  inp.value = ''; inp.className = '';
   closeDropdown();
   updateHUD();
 }
@@ -460,14 +484,22 @@ function flashOverlay(type, text) {
 }
 
 function revealAndAdvance() {
+  // Pause timer
+  clearInterval(timer);
+
+  // Swap to reveal clip
   const vid = document.getElementById('player-photo');
   vid.src = `reveals/${current.id}.mp4`;
   vid.load(); vid.play();
+
+  // Show rank, country, reveal badge
+  document.getElementById('rank-badge').classList.add('show');
+  document.getElementById('country-badge').classList.add('show');
   document.getElementById('reveal-badge').classList.add('show');
-  setTimeout(() => {
-    nextPlayer();
-    document.getElementById('name-input').focus();
-  }, 1800);
+
+  // Hide skip, show Next button
+  document.getElementById('btn-skip').style.display = 'none';
+  document.getElementById('btn-next').classList.add('show');
 }
 
 function markCorrect() {
@@ -501,6 +533,13 @@ function markSkip() {
 }
 
 document.getElementById('btn-skip').addEventListener('click', markSkip);
+
+document.getElementById('btn-next').addEventListener('click', () => {
+  document.getElementById('btn-next').classList.remove('show');
+  nextPlayer();
+  document.getElementById('name-input').focus();
+  startTimer(true); // resume — don't reset progress bar
+});
 
 // ── End game ──────────────────────────────────────────────────────────────────
 
