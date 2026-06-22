@@ -182,6 +182,7 @@
 
   <!-- Guess rows -->
   <div class="guess-list" id="guess-list"></div>
+  <button class="btn-share" id="btn-see-results" style="display:none" onclick="document.getElementById('result-modal').classList.add('show')">See results</button>
 
   <!-- Result modal -->
   <div class="modal-overlay" id="result-modal">
@@ -336,12 +337,14 @@ function renderGame() {
     list.appendChild(row);
   }
 
-  // Show/hide input
+  // Show/hide input and results button
   if (!gameOver) {
     document.getElementById('input-area').style.display = 'flex';
+    document.getElementById('btn-see-results').style.display = 'none';
   } else {
     document.getElementById('input-area').style.display = 'none';
     document.getElementById('guesses-left').style.display = 'none';
+    document.getElementById('btn-see-results').style.display = 'block';
   }
 }
 
