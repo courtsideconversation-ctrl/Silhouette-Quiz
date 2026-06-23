@@ -471,15 +471,20 @@ function handleFile(type, file) {
   if (type === 'celeb')  pendingCeleb  = file;
   if (type === 'reveal') pendingReveal = file;
 
-  const dz = document.getElementById(`${type}-drop`);
+  // Update the drop zone that triggered this (find visible one)
+  const dzId = type === 'reveal'
+    ? (document.getElementById('tab-celeb').style.display !== 'none' ? 'reveal-drop-celeb' : 'reveal-drop')
+    : `${type}-drop`;
+  const dz = document.getElementById(dzId);
   if (dz) {
     dz.classList.add('has-file');
     dz.querySelector('.drop-zone-text').innerHTML = `✓ <strong>${file.name}</strong> selected`;
   }
-  // Sync the other reveal drop zone
+
+  // Always sync both reveal drop zones
   if (type === 'reveal') {
-    ['reveal-drop', 'reveal-drop-celeb'].forEach(dzId => {
-      const el = document.getElementById(dzId);
+    ['reveal-drop', 'reveal-drop-celeb'].forEach(id => {
+      const el = document.getElementById(id);
       if (el) {
         el.classList.add('has-file');
         el.querySelector('.drop-zone-text').innerHTML = `✓ <strong>${file.name}</strong> selected`;
@@ -500,7 +505,8 @@ function handleFile(type, file) {
     e.preventDefault();
     dz.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    const fileType = type.startsWith('reveal') ? 'reveal' : type;
+    // Both reveal zones map to the 'reveal' type
+    const fileType = type.includes('reveal') ? 'reveal' : type;
     if (file) handleFile(fileType, file);
   });
 });
