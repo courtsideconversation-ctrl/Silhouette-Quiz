@@ -272,7 +272,9 @@ const BRANCH         = 'main';
 let allPlayers    = [];
 let siloFiles     = new Set();
 let celebFiles    = new Set();
-let revealFiles   = new Set();
+let revealFiles     = new Set(); // kept for backward compat display
+let shotRevealFiles  = new Set();
+let celebRevealFiles = new Set();
 let shotOrder     = [];
 let celebOrder    = [];
 let selectedPlayer = null;
@@ -305,10 +307,11 @@ async function loadData() {
     const pr = await fetch('data/players.json');
     allPlayers = await pr.json();
 
-    const [siloRes, celebRes, revealRes, shotOrderRes, celebOrderRes] = await Promise.all([
+    const [siloRes, celebRes, shotRevealRes, celebRevealRes, shotOrderRes, celebOrderRes] = await Promise.all([
       ghGet(`contents/silhouettes`),
       ghGet(`contents/celebrations`),
-      ghGet(`contents/reveals`),
+      ghGet(`contents/reveals-shot`),
+      ghGet(`contents/reveals-celeb`),
       fetch('data/shot_order.json'),
       fetch('data/celebration_order.json')
     ]);
@@ -321,9 +324,13 @@ async function loadData() {
       const files = await celebRes.json();
       files.forEach(f => { const id = parseInt(f.name.replace('.mp4','')); if (!isNaN(id)) celebFiles.add(id); });
     }
-    if (revealRes.ok) {
-      const files = await revealRes.json();
-      files.forEach(f => { const id = parseInt(f.name.replace('.mp4','')); if (!isNaN(id)) revealFiles.add(id); });
+    if (shotRevealRes.ok) {
+      const files = await shotRevealRes.json();
+      files.forEach(f => { const id = parseInt(f.name.replace('.mp4','')); if (!isNaN(id)) { shotRevealFiles.add(id); revealFiles.add(id); } });
+    }
+    if (celebRevealRes.ok) {
+      const files = await celebRevealRes.json();
+      files.forEach(f => { const id = parseInt(f.name.replace('.mp4','')); if (!isNaN(id)) { celebRevealFiles.add(id); revealFiles.add(id); } });
     }
     if (shotOrderRes.ok)  shotOrder  = await shotOrderRes.json();
     if (celebOrderRes.ok) celebOrder = await celebOrderRes.json();
@@ -542,24 +549,26 @@ async function uploadFiles() {
       celebFiles.add(Number(id));
     }
 
-    // Upload reveal
+    // Upload reveal — folder depends on which tab is active
     if (pendingReveal) {
-      progress.innerHTML = 'Uploading reveal clip…';
+      const activeTab = document.getElementById('tab-celeb').style.display !== 'none' ? 'celeb' : 'shot';
+      const revealFolder = `reveals-${activeTab}`;
+      progress.innerHTML = `Uploading ${activeTab} reveal clip…`;
       const b64 = await fileToBase64(pendingReveal);
-      const sha = await ghGetSha(`reveals/${id}.mp4`);
-      await ghPut(`reveals/${id}.mp4`, b64, `Add reveal for ${name}`, sha);
-      revealFiles.add(Number(id));
+      const sha = await ghGetSha(`${revealFolder}/${id}.mp4`);
+      await ghPut(`${revealFolder}/${id}.mp4`, b64, `Add ${activeTab} reveal for ${name}`, sha);
+      if (activeTab === 'shot')  { shotRevealFiles.add(Number(id));  revealFiles.add(Number(id)); }
+      if (activeTab === 'celeb') { celebRevealFiles.add(Number(id)); revealFiles.add(Number(id)); }
     }
 
-    // Update shot_order.json if shot silo + reveal uploaded and not already in order
+    // Update shot_order.json if shot silo + shot reveal uploaded
     const inShotOrder = shotOrder.some(e => (typeof e === 'object' ? e.id : e) === Number(id));
-    if (siloFiles.has(Number(id)) && revealFiles.has(Number(id)) && !inShotOrder) {
+    if (siloFiles.has(Number(id)) && shotRevealFiles.has(Number(id)) && !inShotOrder) {
       shotOrder.push({ id: Number(id), view: selectedView });
       const b64 = btoa(JSON.stringify(shotOrder));
       const sha = await ghGetSha('data/shot_order.json');
       await ghPut('data/shot_order.json', b64, `Add ${name} to shot order`, sha);
-    } else if (siloFiles.has(Number(id)) && revealFiles.has(Number(id)) && inShotOrder) {
-      // Update view tag if already exists
+    } else if (siloFiles.has(Number(id)) && shotRevealFiles.has(Number(id)) && inShotOrder) {
       shotOrder = shotOrder.map(e => {
         const eid = typeof e === 'object' ? e.id : e;
         return eid === Number(id) ? { id: Number(id), view: selectedView } : e;
@@ -569,9 +578,9 @@ async function uploadFiles() {
       await ghPut('data/shot_order.json', b64, `Update view for ${name} in shot order`, sha);
     }
 
-    // Update celebration_order.json
+    // Update celebration_order.json if celeb silo + celeb reveal uploaded
     const inCelebOrder = celebOrder.some(e => (typeof e === 'object' ? e.id : e) === Number(id));
-    if (celebFiles.has(Number(id)) && revealFiles.has(Number(id)) && !inCelebOrder) {
+    if (celebFiles.has(Number(id)) && celebRevealFiles.has(Number(id)) && !inCelebOrder) {
       celebOrder.push(Number(id));
       const b64 = btoa(JSON.stringify(celebOrder));
       const sha = await ghGetSha('data/celebration_order.json');
