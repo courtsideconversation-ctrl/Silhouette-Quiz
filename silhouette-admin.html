@@ -137,6 +137,13 @@
   .upload-success { color: var(--correct); }
   .upload-error { color: var(--wrong); }
 
+  .view-btn {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: 100px;
+    background: transparent; color: var(--muted); font-family: var(--font-body);
+    font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .view-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(168,197,58,0.1); }
+
   /* ── Shared button ── */
   .btn {
     padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px;
@@ -166,7 +173,7 @@
 <div id="app">
   <div class="app-header">
     <h1 class="app-title">Silhouette <em>Admin</em></h1>
-    <p class="app-sub">Click a player to upload their silhouette and reveal clips. Green = both uploaded, orange = one missing.</p>
+    <p class="app-sub">Click a player to upload their shot silhouette, celebration silhouette, and reveal clips. Green = all uploaded, orange = some missing.</p>
   </div>
   <input type="text" class="search-bar" id="search-bar" placeholder="Search players…" oninput="filterPlayers()">
   <div class="player-list" id="player-list">
@@ -183,13 +190,28 @@
       <div class="modal-id" id="modal-player-id"></div>
     </div>
 
-    <!-- Silhouette upload -->
+    <!-- Shot silhouette upload -->
     <div class="upload-section">
-      <div class="upload-label">Silhouette clip</div>
-      <div class="upload-sub">Green silhouette MP4 (the one that plays during the puzzle)</div>
-      <div class="existing-badge" id="silo-existing">✓ Silhouette already uploaded — drop a new file to replace</div>
+      <div class="upload-label">Shot silhouette clip</div>
+      <div class="upload-sub">Green silhouette MP4 of the player hitting a shot</div>
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        <button class="view-btn active" id="view-btn-front" onclick="setView('front')">Front view</button>
+        <button class="view-btn" id="view-btn-back" onclick="setView('back')">Back view</button>
+      </div>
+      <div class="existing-badge" id="silo-existing">✓ Shot silhouette already uploaded — drop a new file to replace</div>
       <div class="drop-zone" id="silo-drop">
         <input type="file" accept="video/mp4,video/*" onchange="handleFile('silo', this.files[0])">
+        <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+      </div>
+    </div>
+
+    <!-- Celebration silhouette upload -->
+    <div class="upload-section">
+      <div class="upload-label">Celebration silhouette clip</div>
+      <div class="upload-sub">Green silhouette MP4 of the player celebrating</div>
+      <div class="existing-badge" id="celeb-existing">✓ Celebration already uploaded — drop a new file to replace</div>
+      <div class="drop-zone" id="celeb-drop">
+        <input type="file" accept="video/mp4,video/*" onchange="handleFile('celeb', this.files[0])">
         <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
       </div>
     </div>
@@ -221,11 +243,15 @@ const BRANCH         = 'main';
 // ── State ─────────────────────────────────────────────────────────────────────
 let allPlayers    = [];
 let siloFiles     = new Set();
+let celebFiles    = new Set();
 let revealFiles   = new Set();
-let dailyOrder    = [];
+let shotOrder     = [];
+let celebOrder    = [];
 let selectedPlayer = null;
 let pendingSilo   = null;
+let pendingCeleb  = null;
 let pendingReveal = null;
+let selectedView  = 'front'; // 'front' | 'back'
 
 // ── Password ──────────────────────────────────────────────────────────────────
 function checkPassword() {
@@ -248,28 +274,31 @@ function checkPassword() {
 // ── Load data ─────────────────────────────────────────────────────────────────
 async function loadData() {
   try {
-    // Fetch players.json
     const pr = await fetch('data/players.json');
     allPlayers = await pr.json();
 
-    // Fetch existing file list from GitHub API
-    const [siloRes, revealRes, orderRes] = await Promise.all([
+    const [siloRes, celebRes, revealRes, shotOrderRes, celebOrderRes] = await Promise.all([
       ghGet(`contents/silhouettes`),
+      ghGet(`contents/celebrations`),
       ghGet(`contents/reveals`),
-      fetch('data/daily_order.json')
+      fetch('data/shot_order.json'),
+      fetch('data/celebration_order.json')
     ]);
 
     if (siloRes.ok) {
       const files = await siloRes.json();
-      files.forEach(f => siloFiles.add(parseInt(f.name)));
+      files.forEach(f => { const id = parseInt(f.name.replace('.mp4','')); if (!isNaN(id)) siloFiles.add(id); });
+    }
+    if (celebRes.ok) {
+      const files = await celebRes.json();
+      files.forEach(f => { const id = parseInt(f.name.replace('.mp4','')); if (!isNaN(id)) celebFiles.add(id); });
     }
     if (revealRes.ok) {
       const files = await revealRes.json();
-      files.forEach(f => revealFiles.add(parseInt(f.name)));
+      files.forEach(f => { const id = parseInt(f.name.replace('.mp4','')); if (!isNaN(id)) revealFiles.add(id); });
     }
-    if (orderRes.ok) {
-      dailyOrder = await orderRes.json();
-    }
+    if (shotOrderRes.ok)  shotOrder  = await shotOrderRes.json();
+    if (celebOrderRes.ok) celebOrder = await celebOrderRes.json();
 
     renderList(allPlayers);
   } catch (e) {
@@ -319,22 +348,23 @@ function fileToBase64(file) {
 // ── Render player list ────────────────────────────────────────────────────────
 function renderList(players) {
   const list = document.getElementById('player-list');
-  if (players.length === 0) {
-    list.innerHTML = '<div class="loading">No players found.</div>';
-    return;
-  }
+  if (players.length === 0) { list.innerHTML = '<div class="loading">No players found.</div>'; return; }
   list.innerHTML = players.map(p => {
-    const hasSilo   = siloFiles.has(p.id);
-    const hasReveal = revealFiles.has(p.id);
-    const cls = hasSilo && hasReveal ? 'has-both' : (hasSilo || hasReveal ? 'has-one' : '');
+    const hasSilo   = siloFiles.has(Number(p.id));
+    const hasCeleb  = celebFiles.has(Number(p.id));
+    const hasReveal = revealFiles.has(Number(p.id));
+    const allDone   = hasSilo && hasCeleb && hasReveal;
+    const anyDone   = hasSilo || hasCeleb || hasReveal;
+    const cls = allDone ? 'has-both' : (anyDone ? 'has-one' : '');
     return `
       <div class="player-row ${cls}" onclick="openModal(${p.id})">
         <span class="player-rank">#${p.rank}</span>
         <span class="player-name">${p.name}</span>
         <span class="player-country">${p.country || ''}</span>
         <div class="player-status">
-          <span class="status-pill ${hasSilo ? 'silo' : 'missing'}">${hasSilo ? '✓ Silo' : 'No silo'}</span>
-          <span class="status-pill ${hasReveal ? 'reveal' : 'missing'}">${hasReveal ? '✓ Reveal' : 'No reveal'}</span>
+          <span class="status-pill ${hasSilo  ? 'silo'   : 'missing'}">${hasSilo  ? '✓ Shot'   : 'No shot'}</span>
+          <span class="status-pill ${hasCeleb ? 'reveal' : 'missing'}">${hasCeleb ? '✓ Celeb'  : 'No celeb'}</span>
+          <span class="status-pill ${hasReveal? 'silo'   : 'missing'}">${hasReveal? '✓ Reveal' : 'No reveal'}</span>
         </div>
       </div>`;
   }).join('');
@@ -350,19 +380,23 @@ function filterPlayers() {
 function openModal(id) {
   selectedPlayer = allPlayers.find(p => p.id === id);
   pendingSilo    = null;
+  pendingCeleb   = null;
   pendingReveal  = null;
+  selectedView   = 'front';
 
   document.getElementById('modal-player-name').textContent = selectedPlayer.name;
   document.getElementById('modal-player-id').textContent   = `ID: ${selectedPlayer.id} · Rank #${selectedPlayer.rank} · ${selectedPlayer.country}`;
 
-  const hasSilo   = siloFiles.has(id);
-  const hasReveal = revealFiles.has(id);
+  document.getElementById('silo-existing').classList.toggle('show',   siloFiles.has(Number(id)));
+  document.getElementById('celeb-existing').classList.toggle('show',  celebFiles.has(Number(id)));
+  document.getElementById('reveal-existing').classList.toggle('show', revealFiles.has(Number(id)));
 
-  document.getElementById('silo-existing').classList.toggle('show', hasSilo);
-  document.getElementById('reveal-existing').classList.toggle('show', hasReveal);
+  // Reset view buttons
+  document.getElementById('view-btn-front').classList.add('active');
+  document.getElementById('view-btn-back').classList.remove('active');
 
   // Reset drop zones
-  ['silo', 'reveal'].forEach(type => {
+  ['silo', 'celeb', 'reveal'].forEach(type => {
     const dz = document.getElementById(`${type}-drop`);
     dz.classList.remove('has-file');
     dz.querySelector('.drop-zone-text').innerHTML = 'Drop MP4 here or <strong>click to browse</strong>';
@@ -381,21 +415,28 @@ function closeModal() {
   document.body.style.overflow = '';
 }
 
+function setView(view) {
+  selectedView = view;
+  document.getElementById('view-btn-front').classList.toggle('active', view === 'front');
+  document.getElementById('view-btn-back').classList.toggle('active',  view === 'back');
+}
+
 // ── File handling ─────────────────────────────────────────────────────────────
 function handleFile(type, file) {
   if (!file) return;
   if (type === 'silo')   pendingSilo   = file;
+  if (type === 'celeb')  pendingCeleb  = file;
   if (type === 'reveal') pendingReveal = file;
 
   const dz = document.getElementById(`${type}-drop`);
   dz.classList.add('has-file');
   dz.querySelector('.drop-zone-text').innerHTML = `✓ <strong>${file.name}</strong> selected`;
 
-  document.getElementById('btn-upload').disabled = !(pendingSilo || pendingReveal);
+  document.getElementById('btn-upload').disabled = !(pendingSilo || pendingCeleb || pendingReveal);
 }
 
 // Drag and drop
-['silo', 'reveal'].forEach(type => {
+['silo', 'celeb', 'reveal'].forEach(type => {
   const dz = document.getElementById(`${type}-drop`);
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
@@ -417,54 +458,72 @@ async function uploadFiles() {
   progress.innerHTML = 'Uploading…';
 
   try {
-    const id = selectedPlayer.id;
-    const tasks = [];
+    const id   = selectedPlayer.id;
+    const name = selectedPlayer.name;
 
+    // Upload shot silhouette
     if (pendingSilo) {
-      tasks.push(async () => {
-        progress.innerHTML = 'Uploading silhouette…';
-        const b64 = await fileToBase64(pendingSilo);
-        const sha = await ghGetSha(`silhouettes/${id}.mp4`);
-        await ghPut(`silhouettes/${id}.mp4`, b64, `Add silhouette for ${selectedPlayer.name} (id ${id})`, sha);
-        siloFiles.add(id);
-      });
+      progress.innerHTML = 'Uploading shot silhouette…';
+      const b64 = await fileToBase64(pendingSilo);
+      const sha = await ghGetSha(`silhouettes/${id}.mp4`);
+      await ghPut(`silhouettes/${id}.mp4`, b64, `Add shot silhouette for ${name}`, sha);
+      siloFiles.add(Number(id));
     }
 
+    // Upload celebration silhouette
+    if (pendingCeleb) {
+      progress.innerHTML = 'Uploading celebration silhouette…';
+      const b64 = await fileToBase64(pendingCeleb);
+      const sha = await ghGetSha(`celebrations/${id}.mp4`);
+      await ghPut(`celebrations/${id}.mp4`, b64, `Add celebration silhouette for ${name}`, sha);
+      celebFiles.add(Number(id));
+    }
+
+    // Upload reveal
     if (pendingReveal) {
-      tasks.push(async () => {
-        progress.innerHTML = pendingSilo ? 'Uploading reveal…' : 'Uploading reveal…';
-        const b64 = await fileToBase64(pendingReveal);
-        const sha = await ghGetSha(`reveals/${id}.mp4`);
-        await ghPut(`reveals/${id}.mp4`, b64, `Add reveal for ${selectedPlayer.name} (id ${id})`, sha);
-        revealFiles.add(id);
+      progress.innerHTML = 'Uploading reveal clip…';
+      const b64 = await fileToBase64(pendingReveal);
+      const sha = await ghGetSha(`reveals/${id}.mp4`);
+      await ghPut(`reveals/${id}.mp4`, b64, `Add reveal for ${name}`, sha);
+      revealFiles.add(Number(id));
+    }
+
+    // Update shot_order.json if shot silo + reveal uploaded and not already in order
+    const inShotOrder = shotOrder.some(e => (typeof e === 'object' ? e.id : e) === Number(id));
+    if (siloFiles.has(Number(id)) && revealFiles.has(Number(id)) && !inShotOrder) {
+      shotOrder.push({ id: Number(id), view: selectedView });
+      const b64 = btoa(JSON.stringify(shotOrder));
+      const sha = await ghGetSha('data/shot_order.json');
+      await ghPut('data/shot_order.json', b64, `Add ${name} to shot order`, sha);
+    } else if (siloFiles.has(Number(id)) && revealFiles.has(Number(id)) && inShotOrder) {
+      // Update view tag if already exists
+      shotOrder = shotOrder.map(e => {
+        const eid = typeof e === 'object' ? e.id : e;
+        return eid === Number(id) ? { id: Number(id), view: selectedView } : e;
       });
+      const b64 = btoa(JSON.stringify(shotOrder));
+      const sha = await ghGetSha('data/shot_order.json');
+      await ghPut('data/shot_order.json', b64, `Update view for ${name} in shot order`, sha);
     }
 
-    for (const task of tasks) await task();
-
-    // Update daily_order.json if player now has both files and isn't in the order yet
-    if (siloFiles.has(id) && revealFiles.has(id) && !dailyOrder.includes(id)) {
-      dailyOrder.push(id);
-      const b64 = btoa(JSON.stringify(dailyOrder));
-      const sha = await ghGetSha('data/daily_order.json');
-      await ghPut('data/daily_order.json', b64, `Add ${selectedPlayer.name} to daily order`, sha);
-      progress.innerHTML = `<span class="upload-success">✓ Uploaded and added to daily rotation!</span>`;
-    } else {
-      progress.innerHTML = `<span class="upload-success">✓ Uploaded successfully!</span>`;
+    // Update celebration_order.json
+    const inCelebOrder = celebOrder.some(e => (typeof e === 'object' ? e.id : e) === Number(id));
+    if (celebFiles.has(Number(id)) && revealFiles.has(Number(id)) && !inCelebOrder) {
+      celebOrder.push(Number(id));
+      const b64 = btoa(JSON.stringify(celebOrder));
+      const sha = await ghGetSha('data/celebration_order.json');
+      await ghPut('data/celebration_order.json', b64, `Add ${name} to celebration order`, sha);
     }
 
-    // Update silhouettes.json manifest
-    const readyIds = [...siloFiles].filter(i => revealFiles.has(i)).sort((a,b) => a-b);
-    const siloB64  = btoa(JSON.stringify(readyIds));
-    const siloSha  = await ghGetSha('data/silhouettes.json');
-    await ghPut('data/silhouettes.json', siloB64, `Update silhouettes manifest`, siloSha);
+    progress.innerHTML = `<span class="upload-success">✓ Uploaded successfully!</span>`;
 
     renderList(document.getElementById('search-bar').value
       ? allPlayers.filter(p => p.name.toLowerCase().includes(document.getElementById('search-bar').value.toLowerCase()))
       : allPlayers);
 
-    btn.disabled = false;
-    pendingSilo = null;
+    btn.disabled  = false;
+    pendingSilo   = null;
+    pendingCeleb  = null;
     pendingReveal = null;
 
   } catch (e) {
