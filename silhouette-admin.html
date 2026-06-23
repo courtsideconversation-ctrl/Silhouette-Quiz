@@ -249,7 +249,7 @@
         <div class="upload-sub">Original color MP4 (shared between both modes)</div>
         <div class="existing-badge" id="reveal-existing-celeb">✓ Already uploaded — drop a new file to replace</div>
         <div class="drop-zone" id="reveal-drop-celeb">
-          <input type="file" accept="video/mp4,video/*" onchange="handleFile('reveal', this.files[0])">
+          <input type="file" accept="video/mp4,video/*" onchange="handleFile('reveal-celeb', this.files[0])">
           <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
         </div>
       </div>
@@ -278,9 +278,10 @@ let celebRevealFiles = new Set();
 let shotOrder     = [];
 let celebOrder    = [];
 let selectedPlayer = null;
-let pendingSilo   = null;
-let pendingCeleb  = null;
-let pendingReveal = null;
+let pendingSilo        = null;
+let pendingCeleb       = null;
+let pendingShotReveal  = null;
+let pendingCelebReveal = null;
 let selectedView  = 'front'; // 'front' | 'back'
 
 // ── Password ──────────────────────────────────────────────────────────────────
@@ -414,9 +415,10 @@ function filterPlayers() {
 // ── Modal ─────────────────────────────────────────────────────────────────────
 function openModal(id) {
   selectedPlayer = allPlayers.find(p => p.id === id);
-  pendingSilo    = null;
-  pendingCeleb   = null;
-  pendingReveal  = null;
+  pendingSilo        = null;
+  pendingCeleb       = null;
+  pendingShotReveal  = null;
+  pendingCelebReveal = null;
   selectedView   = 'front';
 
   document.getElementById('modal-player-name').textContent = selectedPlayer.name;
@@ -474,32 +476,19 @@ function switchTab(tab) {
 // ── File handling ─────────────────────────────────────────────────────────────
 function handleFile(type, file) {
   if (!file) return;
-  if (type === 'silo')   pendingSilo   = file;
-  if (type === 'celeb')  pendingCeleb  = file;
-  if (type === 'reveal') pendingReveal = file;
+  if (type === 'silo')         pendingSilo        = file;
+  if (type === 'celeb')        pendingCeleb       = file;
+  if (type === 'reveal')       pendingShotReveal  = file;
+  if (type === 'reveal-celeb') pendingCelebReveal = file;
 
-  // Update the drop zone that triggered this (find visible one)
-  const dzId = type === 'reveal'
-    ? (document.getElementById('tab-celeb').style.display !== 'none' ? 'reveal-drop-celeb' : 'reveal-drop')
-    : `${type}-drop`;
+  const dzId = type === 'reveal' ? 'reveal-drop' : type === 'reveal-celeb' ? 'reveal-drop-celeb' : `${type}-drop`;
   const dz = document.getElementById(dzId);
   if (dz) {
     dz.classList.add('has-file');
     dz.querySelector('.drop-zone-text').innerHTML = `✓ <strong>${file.name}</strong> selected`;
   }
 
-  // Always sync both reveal drop zones
-  if (type === 'reveal') {
-    ['reveal-drop', 'reveal-drop-celeb'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.classList.add('has-file');
-        el.querySelector('.drop-zone-text').innerHTML = `✓ <strong>${file.name}</strong> selected`;
-      }
-    });
-  }
-
-  document.getElementById('btn-upload').disabled = !(pendingSilo || pendingCeleb || pendingReveal);
+  document.getElementById('btn-upload').disabled = !(pendingSilo || pendingCeleb || pendingShotReveal || pendingCelebReveal);
 }
 
 // Drag and drop
@@ -512,9 +501,7 @@ function handleFile(type, file) {
     e.preventDefault();
     dz.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    // Both reveal zones map to the 'reveal' type
-    const fileType = type.includes('reveal') ? 'reveal' : type;
-    if (file) handleFile(fileType, file);
+    if (file) handleFile(type, file);
   });
 });
 
@@ -549,16 +536,22 @@ async function uploadFiles() {
       celebFiles.add(Number(id));
     }
 
-    // Upload reveal — folder depends on which tab is active
-    if (pendingReveal) {
-      const activeTab = document.getElementById('tab-celeb').style.display !== 'none' ? 'celeb' : 'shot';
-      const revealFolder = `reveals-${activeTab}`;
-      progress.innerHTML = `Uploading ${activeTab} reveal clip…`;
-      const b64 = await fileToBase64(pendingReveal);
-      const sha = await ghGetSha(`${revealFolder}/${id}.mp4`);
-      await ghPut(`${revealFolder}/${id}.mp4`, b64, `Add ${activeTab} reveal for ${name}`, sha);
-      if (activeTab === 'shot')  { shotRevealFiles.add(Number(id));  revealFiles.add(Number(id)); }
-      if (activeTab === 'celeb') { celebRevealFiles.add(Number(id)); revealFiles.add(Number(id)); }
+    // Upload shot reveal
+    if (pendingShotReveal) {
+      progress.innerHTML = 'Uploading shot reveal…';
+      const b64 = await fileToBase64(pendingShotReveal);
+      const sha = await ghGetSha(`reveals-shot/${id}.mp4`);
+      await ghPut(`reveals-shot/${id}.mp4`, b64, `Add shot reveal for ${name}`, sha);
+      shotRevealFiles.add(Number(id)); revealFiles.add(Number(id));
+    }
+
+    // Upload celeb reveal
+    if (pendingCelebReveal) {
+      progress.innerHTML = 'Uploading celebration reveal…';
+      const b64 = await fileToBase64(pendingCelebReveal);
+      const sha = await ghGetSha(`reveals-celeb/${id}.mp4`);
+      await ghPut(`reveals-celeb/${id}.mp4`, b64, `Add celeb reveal for ${name}`, sha);
+      celebRevealFiles.add(Number(id)); revealFiles.add(Number(id));
     }
 
     // Update shot_order.json if shot silo + shot reveal uploaded
@@ -593,10 +586,11 @@ async function uploadFiles() {
       ? allPlayers.filter(p => p.name.toLowerCase().includes(document.getElementById('search-bar').value.toLowerCase()))
       : allPlayers);
 
-    btn.disabled  = false;
-    pendingSilo   = null;
-    pendingCeleb  = null;
-    pendingReveal = null;
+    btn.disabled       = false;
+    pendingSilo        = null;
+    pendingCeleb       = null;
+    pendingShotReveal  = null;
+    pendingCelebReveal = null;
 
   } catch (e) {
     progress.innerHTML = `<span class="upload-error">✗ Error: ${e.message}</span>`;
