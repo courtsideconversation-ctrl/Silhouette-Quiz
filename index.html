@@ -361,7 +361,7 @@ function renderGame() {
   if (!gameOver) {
     vid.src = `${folder}/${todayPlayer.id}.mp4`;
   } else {
-    vid.src = `reveals-${currentMode}/${todayPlayer.id}.mp4`;
+    vid.src = `reveals-${currentMode === 'celebration' ? 'celeb' : 'shot'}/${todayPlayer.id}.mp4`;
   }
   vid.load(); vid.play();
 
@@ -495,7 +495,7 @@ function showResult(animate) {
 
   // Swap to reveal
   const vid = document.getElementById('silo-video');
-  vid.src = `reveals-${currentMode}/${todayPlayer.id}.mp4`;
+  vid.src = `reveals-${currentMode === 'celebration' ? 'celeb' : 'shot'}/${todayPlayer.id}.mp4`;
   vid.load(); vid.play();
   document.getElementById('view-badge').classList.remove('show');
   document.getElementById('guesses-left').style.display = 'none';
