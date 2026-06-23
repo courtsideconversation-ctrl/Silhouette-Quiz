@@ -313,7 +313,7 @@ function loadMode(mode) {
   const entry   = order[dayIdx % order.length];
   const todayId = typeof entry === 'object' ? entry.id : entry;
   todayView     = (typeof entry === 'object' && entry.view) ? entry.view : null;
-  todayPlayer   = allPlayers.find(p => p.id === todayId);
+  todayPlayer   = allPlayers.find(p => Number(p.id) === Number(todayId));
   guesses       = [];
   gameOver      = false;
   highlightedIndex = -1;
