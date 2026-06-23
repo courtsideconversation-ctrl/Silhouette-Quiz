@@ -144,6 +144,17 @@
   }
   .view-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(168,197,58,0.1); }
 
+  .mode-toggle {
+    display: flex; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 100px; padding: 4px; gap: 4px;
+  }
+  .mode-btn {
+    flex: 1; padding: 8px 16px; border: none; border-radius: 100px;
+    background: transparent; color: var(--muted); font-family: var(--font-body);
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s;
+  }
+  .mode-btn.active { background: var(--accent); color: #1a1a1a; }
+
   /* ── Shared button ── */
   .btn {
     padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px;
@@ -190,40 +201,57 @@
       <div class="modal-id" id="modal-player-id"></div>
     </div>
 
-    <!-- Shot silhouette upload -->
-    <div class="upload-section">
-      <div class="upload-label">Shot silhouette clip</div>
-      <div class="upload-sub">Green silhouette MP4 of the player hitting a shot</div>
-      <div style="display:flex;gap:8px;margin-bottom:4px;">
-        <button class="view-btn active" id="view-btn-front" onclick="setView('front')">Front view</button>
-        <button class="view-btn" id="view-btn-back" onclick="setView('back')">Back view</button>
+    <!-- Tab toggle -->
+    <div class="mode-toggle" style="margin-bottom:4px;">
+      <button class="mode-btn active" id="tab-btn-shot" onclick="switchTab('shot')">Shot</button>
+      <button class="mode-btn" id="tab-btn-celeb" onclick="switchTab('celeb')">Celebration</button>
+    </div>
+
+    <!-- Shot tab -->
+    <div id="tab-shot">
+      <div class="upload-section">
+        <div class="upload-label">Shot silhouette</div>
+        <div class="upload-sub">Green silhouette MP4 of the player hitting a shot</div>
+        <div style="display:flex;gap:8px;margin:6px 0;">
+          <button class="view-btn active" id="view-btn-front" onclick="setView('front')">Front view</button>
+          <button class="view-btn" id="view-btn-back" onclick="setView('back')">Back view</button>
+        </div>
+        <div class="existing-badge" id="silo-existing">✓ Already uploaded — drop a new file to replace</div>
+        <div class="drop-zone" id="silo-drop">
+          <input type="file" accept="video/mp4,video/*" onchange="handleFile('silo', this.files[0])">
+          <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+        </div>
       </div>
-      <div class="existing-badge" id="silo-existing">✓ Shot silhouette already uploaded — drop a new file to replace</div>
-      <div class="drop-zone" id="silo-drop">
-        <input type="file" accept="video/mp4,video/*" onchange="handleFile('silo', this.files[0])">
-        <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+      <div class="upload-section" style="margin-top:12px;">
+        <div class="upload-label">Reveal clip</div>
+        <div class="upload-sub">Original color MP4 (shared between both modes)</div>
+        <div class="existing-badge" id="reveal-existing">✓ Already uploaded — drop a new file to replace</div>
+        <div class="drop-zone" id="reveal-drop">
+          <input type="file" accept="video/mp4,video/*" onchange="handleFile('reveal', this.files[0])">
+          <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+        </div>
       </div>
     </div>
 
-    <!-- Celebration silhouette upload -->
-    <div class="upload-section">
-      <div class="upload-label">Celebration silhouette clip</div>
-      <div class="upload-sub">Green silhouette MP4 of the player celebrating</div>
-      <div class="existing-badge" id="celeb-existing">✓ Celebration already uploaded — drop a new file to replace</div>
-      <div class="drop-zone" id="celeb-drop">
-        <input type="file" accept="video/mp4,video/*" onchange="handleFile('celeb', this.files[0])">
-        <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+    <!-- Celebration tab -->
+    <div id="tab-celeb" style="display:none;">
+      <div class="upload-section">
+        <div class="upload-label">Celebration silhouette</div>
+        <div class="upload-sub">Green silhouette MP4 of the player celebrating</div>
+        <div class="existing-badge" id="celeb-existing">✓ Already uploaded — drop a new file to replace</div>
+        <div class="drop-zone" id="celeb-drop">
+          <input type="file" accept="video/mp4,video/*" onchange="handleFile('celeb', this.files[0])">
+          <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+        </div>
       </div>
-    </div>
-
-    <!-- Reveal upload -->
-    <div class="upload-section">
-      <div class="upload-label">Reveal clip</div>
-      <div class="upload-sub">Original color MP4 (shown after the player answers)</div>
-      <div class="existing-badge" id="reveal-existing">✓ Reveal already uploaded — drop a new file to replace</div>
-      <div class="drop-zone" id="reveal-drop">
-        <input type="file" accept="video/mp4,video/*" onchange="handleFile('reveal', this.files[0])">
-        <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+      <div class="upload-section" style="margin-top:12px;">
+        <div class="upload-label">Reveal clip</div>
+        <div class="upload-sub">Original color MP4 (shared between both modes)</div>
+        <div class="existing-badge" id="reveal-existing-celeb">✓ Already uploaded — drop a new file to replace</div>
+        <div class="drop-zone" id="reveal-drop-celeb">
+          <input type="file" accept="video/mp4,video/*" onchange="handleFile('reveal', this.files[0])">
+          <div class="drop-zone-text">Drop MP4 here or <strong>click to browse</strong></div>
+        </div>
       </div>
     </div>
 
@@ -387,20 +415,28 @@ function openModal(id) {
   document.getElementById('modal-player-name').textContent = selectedPlayer.name;
   document.getElementById('modal-player-id').textContent   = `ID: ${selectedPlayer.id} · Rank #${selectedPlayer.rank} · ${selectedPlayer.country}`;
 
-  document.getElementById('silo-existing').classList.toggle('show',   siloFiles.has(Number(id)));
-  document.getElementById('celeb-existing').classList.toggle('show',  celebFiles.has(Number(id)));
-  document.getElementById('reveal-existing').classList.toggle('show', revealFiles.has(Number(id)));
+  const hasSilo   = siloFiles.has(Number(id));
+  const hasCeleb  = celebFiles.has(Number(id));
+  const hasReveal = revealFiles.has(Number(id));
 
-  // Reset view buttons
+  document.getElementById('silo-existing').classList.toggle('show',         hasSilo);
+  document.getElementById('celeb-existing').classList.toggle('show',        hasCeleb);
+  document.getElementById('reveal-existing').classList.toggle('show',       hasReveal);
+  document.getElementById('reveal-existing-celeb').classList.toggle('show', hasReveal);
+
+  // Reset view buttons and tab
   document.getElementById('view-btn-front').classList.add('active');
   document.getElementById('view-btn-back').classList.remove('active');
+  switchTab('shot');
 
-  // Reset drop zones
-  ['silo', 'celeb', 'reveal'].forEach(type => {
+  // Reset all drop zones
+  ['silo', 'celeb', 'reveal', 'reveal-celeb'].forEach(type => {
     const dz = document.getElementById(`${type}-drop`);
+    if (!dz) return;
     dz.classList.remove('has-file');
     dz.querySelector('.drop-zone-text').innerHTML = 'Drop MP4 here or <strong>click to browse</strong>';
-    dz.querySelector('input').value = '';
+    const inp = dz.querySelector('input');
+    if (inp) inp.value = '';
   });
 
   document.getElementById('upload-progress').classList.remove('show');
@@ -421,6 +457,13 @@ function setView(view) {
   document.getElementById('view-btn-back').classList.toggle('active',  view === 'back');
 }
 
+function switchTab(tab) {
+  document.getElementById('tab-shot').style.display  = tab === 'shot'  ? 'block' : 'none';
+  document.getElementById('tab-celeb').style.display = tab === 'celeb' ? 'block' : 'none';
+  document.getElementById('tab-btn-shot').classList.toggle('active',  tab === 'shot');
+  document.getElementById('tab-btn-celeb').classList.toggle('active', tab === 'celeb');
+}
+
 // ── File handling ─────────────────────────────────────────────────────────────
 function handleFile(type, file) {
   if (!file) return;
@@ -429,22 +472,36 @@ function handleFile(type, file) {
   if (type === 'reveal') pendingReveal = file;
 
   const dz = document.getElementById(`${type}-drop`);
-  dz.classList.add('has-file');
-  dz.querySelector('.drop-zone-text').innerHTML = `✓ <strong>${file.name}</strong> selected`;
+  if (dz) {
+    dz.classList.add('has-file');
+    dz.querySelector('.drop-zone-text').innerHTML = `✓ <strong>${file.name}</strong> selected`;
+  }
+  // Sync the other reveal drop zone
+  if (type === 'reveal') {
+    ['reveal-drop', 'reveal-drop-celeb'].forEach(dzId => {
+      const el = document.getElementById(dzId);
+      if (el) {
+        el.classList.add('has-file');
+        el.querySelector('.drop-zone-text').innerHTML = `✓ <strong>${file.name}</strong> selected`;
+      }
+    });
+  }
 
   document.getElementById('btn-upload').disabled = !(pendingSilo || pendingCeleb || pendingReveal);
 }
 
 // Drag and drop
-['silo', 'celeb', 'reveal'].forEach(type => {
+['silo', 'celeb', 'reveal', 'reveal-celeb'].forEach(type => {
   const dz = document.getElementById(`${type}-drop`);
+  if (!dz) return;
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
   dz.addEventListener('drop', e => {
     e.preventDefault();
     dz.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    if (file) handleFile(type, file);
+    const fileType = type.startsWith('reveal') ? 'reveal' : type;
+    if (file) handleFile(fileType, file);
   });
 });
 
