@@ -386,11 +386,12 @@ function renderList(players) {
   const list = document.getElementById('player-list');
   if (players.length === 0) { list.innerHTML = '<div class="loading">No players found.</div>'; return; }
   list.innerHTML = players.map(p => {
-    const hasSilo   = siloFiles.has(Number(p.id));
-    const hasCeleb  = celebFiles.has(Number(p.id));
-    const hasReveal = revealFiles.has(Number(p.id));
-    const allDone   = hasSilo && hasCeleb && hasReveal;
-    const anyDone   = hasSilo || hasCeleb || hasReveal;
+    const hasSilo       = siloFiles.has(Number(p.id));
+    const hasShotReveal = shotRevealFiles.has(Number(p.id));
+    const hasCeleb      = celebFiles.has(Number(p.id));
+    const hasCelebReveal= celebRevealFiles.has(Number(p.id));
+    const allDone = hasSilo && hasShotReveal && hasCeleb && hasCelebReveal;
+    const anyDone = hasSilo || hasShotReveal || hasCeleb || hasCelebReveal;
     const cls = allDone ? 'has-both' : (anyDone ? 'has-one' : '');
     return `
       <div class="player-row ${cls}" onclick="openModal(${p.id})">
@@ -398,9 +399,10 @@ function renderList(players) {
         <span class="player-name">${p.name}</span>
         <span class="player-country">${p.country || ''}</span>
         <div class="player-status">
-          <span class="status-pill ${hasSilo  ? 'silo'   : 'missing'}">${hasSilo  ? '✓ Shot'   : 'No shot'}</span>
-          <span class="status-pill ${hasCeleb ? 'reveal' : 'missing'}">${hasCeleb ? '✓ Celeb'  : 'No celeb'}</span>
-          <span class="status-pill ${hasReveal? 'silo'   : 'missing'}">${hasReveal? '✓ Reveal' : 'No reveal'}</span>
+          <span class="status-pill ${hasSilo       ? 'silo'    : 'missing'}">${hasSilo       ? '✓ Shot'         : 'No shot'}</span>
+          <span class="status-pill ${hasShotReveal ? 'reveal'  : 'missing'}">${hasShotReveal ? '✓ Shot reveal'  : 'No shot rev'}</span>
+          <span class="status-pill ${hasCeleb      ? 'silo'    : 'missing'}">${hasCeleb      ? '✓ Celeb'        : 'No celeb'}</span>
+          <span class="status-pill ${hasCelebReveal? 'reveal'  : 'missing'}">${hasCelebReveal? '✓ Celeb reveal' : 'No celeb rev'}</span>
         </div>
       </div>`;
   }).join('');
@@ -424,14 +426,10 @@ function openModal(id) {
   document.getElementById('modal-player-name').textContent = selectedPlayer.name;
   document.getElementById('modal-player-id').textContent   = `ID: ${selectedPlayer.id} · Rank #${selectedPlayer.rank} · ${selectedPlayer.country}`;
 
-  const hasSilo   = siloFiles.has(Number(id));
-  const hasCeleb  = celebFiles.has(Number(id));
-  const hasReveal = revealFiles.has(Number(id));
-
-  document.getElementById('silo-existing').classList.toggle('show',         hasSilo);
-  document.getElementById('celeb-existing').classList.toggle('show',        hasCeleb);
-  document.getElementById('reveal-existing').classList.toggle('show',       hasReveal);
-  document.getElementById('reveal-existing-celeb').classList.toggle('show', hasReveal);
+  document.getElementById('silo-existing').classList.toggle('show',         siloFiles.has(Number(id)));
+  document.getElementById('celeb-existing').classList.toggle('show',        celebFiles.has(Number(id)));
+  document.getElementById('reveal-existing').classList.toggle('show',       shotRevealFiles.has(Number(id)));
+  document.getElementById('reveal-existing-celeb').classList.toggle('show', celebRevealFiles.has(Number(id)));
 
   // Reset view buttons and tab
   document.getElementById('view-btn-front').classList.add('active');
