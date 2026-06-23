@@ -27,27 +27,30 @@
     background: var(--bg); color: var(--text); font-family: var(--font-body);
     min-height: 100vh; display: flex; flex-direction: column; align-items: center;
   }
-  main {
-    width: 100%; max-width: 520px; padding: 24px 16px 64px;
-    display: flex; flex-direction: column; gap: 16px;
-  }
+  main { width: 100%; max-width: 560px; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 16px; }
 
-  .page-title {
-    font-family: var(--font-display); font-size: 28px; font-weight: 900;
-    text-align: center; line-height: 1.1;
-  }
+  .page-title { font-family: var(--font-display); font-size: 28px; font-weight: 900; text-align: center; line-height: 1.1; }
   .page-title em { font-style: normal; color: var(--accent); }
   .page-date { text-align: center; font-size: 13px; color: var(--muted); }
+
+  /* ── Mode toggle ── */
+  .mode-toggle {
+    display: flex; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 100px; padding: 4px; gap: 4px;
+  }
+  .mode-btn {
+    flex: 1; padding: 10px 16px; border: none; border-radius: 100px;
+    background: transparent; color: var(--muted); font-family: var(--font-body);
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s;
+  }
+  .mode-btn.active { background: var(--accent); color: #1a1a1a; }
 
   /* ── Silhouette card ── */
   .silo-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); overflow: hidden; position: relative;
   }
-  .silo-wrap {
-    width: 100%; aspect-ratio: 4/3; background: #1a1a1a;
-    display: flex; align-items: center; justify-content: center;
-  }
+  .silo-wrap { width: 100%; aspect-ratio: 4/3; background: #1a1a1a; display: flex; align-items: center; justify-content: center; }
   .silo-wrap video { width: 100%; height: 100%; object-fit: contain; }
 
   .guesses-left {
@@ -57,6 +60,22 @@
     backdrop-filter: blur(4px);
   }
   .guesses-left strong { color: var(--text); }
+
+  /* ── View badge (front/back) ── */
+  .view-badge {
+    position: absolute; top: 10px; left: 12px;
+    background: rgba(0,0,0,0.7); border: 1px solid var(--accent);
+    border-radius: 6px; padding: 4px 10px; font-size: 12px; color: var(--accent);
+    backdrop-filter: blur(4px); font-weight: 600; display: none;
+  }
+  .view-badge.show { display: block; }
+
+  /* ── Active players note ── */
+  .active-note {
+    text-align: center; font-size: 12px; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 14px;
+  }
 
   /* ── Guess rows ── */
   .guess-list { display: flex; flex-direction: column; gap: 8px; }
@@ -72,7 +91,7 @@
   .guess-row.wrong   { border-color: var(--wrong);   background: rgba(226,92,92,0.08); }
   .guess-row.empty   { border-style: dashed; opacity: 0.4; }
 
-  /* ── Input area ── */
+  /* ── Input ── */
   .input-wrap { position: relative; display: flex; gap: 8px; }
   .input-inner { position: relative; flex: 1; }
   #guess-input {
@@ -102,58 +121,46 @@
   /* ── Result modal ── */
   .modal-overlay {
     position: absolute; top: 0; left: 0; width: 100%; min-height: 100%;
-    background: rgba(0,0,0,0.7);
-    display: none; align-items: flex-start; justify-content: center;
-    z-index: 300; padding: 24px; backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.75); display: none; align-items: flex-start;
+    justify-content: center; z-index: 300; padding: 24px; backdrop-filter: blur(4px);
   }
   .modal-overlay.show { display: flex; }
-  .modal-overlay .modal { margin-top: 10vh; }
-
   .modal {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 28px 24px 24px;
-    width: 100%; max-width: 400px; display: flex; flex-direction: column;
-    gap: 16px; position: relative;
-    animation: popIn 0.25s ease;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px 24px; width: 100%; max-width: 400px; display: flex; flex-direction: column;
+    gap: 14px; position: relative; margin-top: 10vh; animation: popIn 0.2s ease;
   }
-  @keyframes popIn {
-    from { transform: scale(0.92); opacity: 0; }
-    to   { transform: scale(1);    opacity: 1; }
-  }
-
+  @keyframes popIn { from { transform: scale(0.93); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   .modal-close {
-    position: absolute; top: 14px; right: 14px;
-    background: transparent; border: 1px solid var(--border); border-radius: 6px;
-    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-    color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1;
-    transition: border-color 0.15s, color 0.15s;
+    position: absolute; top: 14px; right: 14px; background: transparent;
+    border: 1px solid var(--border); border-radius: 6px; width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center; color: var(--muted);
+    cursor: pointer; font-size: 16px; transition: border-color 0.15s, color 0.15s;
   }
   .modal-close:hover { border-color: var(--text); color: var(--text); }
-
-  .result-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; text-align: center; }
-  .result-name { font-family: var(--font-display); font-size: 32px; font-weight: 900; color: var(--accent); text-align: center; }
-  .result-rank { font-size: 13px; color: var(--muted); text-align: center; }
-
+  .result-label  { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; text-align: center; }
+  .result-name   { font-family: var(--font-display); font-size: 28px; font-weight: 900; color: var(--accent); text-align: center; }
+  .result-rank   { font-size: 13px; color: var(--muted); text-align: center; }
   .result-squares { font-size: 22px; text-align: center; letter-spacing: 3px; }
-
   .btn-share {
-    padding: 14px; border: none; border-radius: var(--radius);
-    background: var(--accent); color: #1a1a1a; font-family: var(--font-body);
-    font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    padding: 14px; border: none; border-radius: var(--radius); background: var(--accent);
+    color: #1a1a1a; font-family: var(--font-body); font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
   }
   .btn-share:hover { background: var(--accent-dim); }
-
   .next-puzzle { text-align: center; font-size: 13px; color: var(--muted); }
   .next-puzzle strong { color: var(--text); }
 
-  .already-played {
-    text-align: center; color: var(--muted); font-size: 14px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 16px; line-height: 1.6;
+  .btn-see-results {
+    display: none; padding: 14px; border: none; border-radius: var(--radius);
+    background: var(--accent); color: #1a1a1a; font-family: var(--font-body);
+    font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
   }
+  .btn-see-results.show { display: block; }
+  .btn-see-results:hover { background: var(--accent-dim); }
 
   .loading-msg { text-align: center; color: var(--muted); padding: 40px 0; font-size: 15px; }
-  .error-msg { text-align: center; color: var(--wrong); padding: 20px 0; font-size: 14px; line-height: 1.6; }
+  .error-msg   { text-align: center; color: var(--wrong); padding: 20px 0; font-size: 14px; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -163,7 +170,15 @@
     <p class="page-date" id="page-date"></p>
   </div>
 
-  <div id="loading" class="loading-msg">Loading today's player…</div>
+  <!-- Mode toggle -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-mode-shot" onclick="switchMode('shot')">Shot of the Day</button>
+    <button class="mode-btn" id="btn-mode-celebration" onclick="switchMode('celebration')">Celebration of the Day</button>
+  </div>
+
+  <p class="active-note">Active ATP players only</p>
+
+  <div id="loading" class="loading-msg">Loading today's puzzle…</div>
   <div id="error" class="error-msg" style="display:none"></div>
 
   <!-- Silhouette card -->
@@ -171,10 +186,11 @@
     <div class="silo-wrap">
       <video id="silo-video" autoplay loop muted playsinline></video>
     </div>
+    <div class="view-badge" id="view-badge"></div>
     <div class="guesses-left" id="guesses-left"></div>
   </div>
 
-  <!-- Input (directly below silo) -->
+  <!-- Input -->
   <div class="input-wrap" id="input-area" style="display:none">
     <div class="input-inner">
       <div class="dropdown" id="dropdown"></div>
@@ -184,46 +200,44 @@
 
   <!-- Guess rows -->
   <div class="guess-list" id="guess-list"></div>
-  <button class="btn-share" id="btn-see-results" style="display:none" onclick="document.getElementById('result-modal').classList.add('show'); document.body.style.overflow='hidden'; window.scrollTo(0,0)">See results</button>
+  <button class="btn-see-results" id="btn-see-results" onclick="openModal()">See results</button>
 
   <!-- Result modal -->
   <div class="modal-overlay" id="result-modal">
     <div class="modal">
-      <button class="modal-close" onclick="document.getElementById('result-modal').classList.remove('show'); document.body.style.overflow = '';">✕</button>
+      <button class="modal-close" onclick="closeModal()">✕</button>
       <div class="result-label" id="result-label">The player was</div>
-      <div class="result-name" id="result-name"></div>
-      <div class="result-rank" id="result-rank"></div>
+      <div class="result-name"  id="result-name"></div>
+      <div class="result-rank"  id="result-rank"></div>
       <div class="result-squares" id="result-squares"></div>
       <button class="btn-share" id="btn-share">Share result</button>
-      <div class="next-puzzle" id="next-puzzle"></div>
+      <div class="next-puzzle"  id="next-puzzle"></div>
     </div>
   </div>
-
-  <!-- Already played today -->
-  <div class="already-played" id="already-played" style="display:none"></div>
 </main>
 
 <script>
 const MAX_GUESSES = 6;
-const STORAGE_KEY = 'silhouette_wordle';
+const STORAGE_KEY_SHOT = 'silhouette_shot';
+const STORAGE_KEY_CELEB = 'silhouette_celebration';
 
-let allPlayers = [];
-let dailyOrder = [];
+let allPlayers  = [];
+let shotOrder   = [];   // [{id, view}] — view is 'front'|'back'|null
+let celebOrder  = [];   // [{id}]
 let todayPlayer = null;
-let guesses = [];
-let gameOver = false;
+let todayView   = null; // 'front' | 'back' | null
+let guesses     = [];
+let gameOver    = false;
 let highlightedIndex = -1;
+let currentMode = 'shot'; // 'shot' | 'celebration'
 
-// ── Date helpers ──────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getTodayStr() {
-  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-}
+function getTodayStr() { return new Date().toISOString().split('T')[0]; }
 
 function getDayIndex() {
-  // Days since a fixed epoch (June 23 2026 = day 0)
   const epoch = new Date('2026-06-23T00:00:00Z');
-  const now   = new Date();
+  const now = new Date();
   now.setUTCHours(0,0,0,0);
   return Math.floor((now - epoch) / 86400000);
 }
@@ -231,96 +245,142 @@ function getDayIndex() {
 function getTimeUntilMidnight() {
   const now = new Date();
   const midnight = new Date();
-  midnight.setHours(24, 0, 0, 0);
+  midnight.setHours(24,0,0,0);
   const diff = midnight - now;
-  const h = Math.floor(diff / 3600000);
-  const m = Math.floor((diff % 3600000) / 60000);
-  const s = Math.floor((diff % 60000) / 1000);
+  const h = Math.floor(diff/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  const s = Math.floor((diff%60000)/1000);
   return `${h}h ${m}m ${s}s`;
 }
 
-// ── Load data ─────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────────
 
 async function init() {
-  // Set date display
   document.getElementById('page-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   try {
-    const [pr, or] = await Promise.all([
+    const [pr, sr, cr] = await Promise.all([
       fetch('data/players.json'),
-      fetch('data/daily_order.json')
+      fetch('data/shot_order.json'),
+      fetch('data/celebration_order.json')
     ]);
     if (!pr.ok) throw new Error('players.json missing');
-    if (!or.ok) throw new Error('daily_order.json missing');
 
-    allPlayers  = await pr.json();
-    dailyOrder  = await or.json(); // array of player IDs in fixed order
-
-    const dayIdx    = getDayIndex();
-    const todayId   = dailyOrder[dayIdx % dailyOrder.length];
-    todayPlayer     = allPlayers.find(p => p.id === todayId);
-
-    if (!todayPlayer) throw new Error('Could not find today\'s player.');
+    allPlayers = await pr.json();
+    if (sr.ok) shotOrder  = await sr.json();
+    if (cr.ok) celebOrder = await cr.json();
 
     document.getElementById('loading').style.display = 'none';
-    checkSavedState();
-  } catch (e) {
+    loadMode('shot');
+  } catch(e) {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('error').style.display = 'block';
     document.getElementById('error').textContent = 'Could not load today\'s puzzle. ' + e.message;
   }
 }
 
+// ── Mode switching ────────────────────────────────────────────────────────────
+
+function switchMode(mode) {
+  if (mode === currentMode) return;
+  currentMode = mode;
+  document.getElementById('btn-mode-shot').classList.toggle('active', mode === 'shot');
+  document.getElementById('btn-mode-celebration').classList.toggle('active', mode === 'celebration');
+  closeModal();
+  loadMode(mode);
+}
+
+function loadMode(mode) {
+  currentMode = mode;
+  const order = mode === 'shot' ? shotOrder : celebOrder;
+  const storageKey = mode === 'shot' ? STORAGE_KEY_SHOT : STORAGE_KEY_CELEB;
+
+  if (order.length === 0) {
+    document.getElementById('silo-card').style.display = 'none';
+    document.getElementById('input-area').style.display = 'none';
+    document.getElementById('guess-list').innerHTML = '';
+    document.getElementById('btn-see-results').classList.remove('show');
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = mode === 'shot'
+      ? 'No shot clips available yet — check back soon!'
+      : 'No celebration clips available yet — check back soon!';
+    return;
+  }
+
+  document.getElementById('error').style.display = 'none';
+
+  const dayIdx  = getDayIndex();
+  const entry   = order[dayIdx % order.length];
+  const todayId = typeof entry === 'object' ? entry.id : entry;
+  todayView     = (typeof entry === 'object' && entry.view) ? entry.view : null;
+  todayPlayer   = allPlayers.find(p => p.id === todayId);
+  guesses       = [];
+  gameOver      = false;
+  highlightedIndex = -1;
+
+  if (!todayPlayer) {
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = "Could not find today's player.";
+    return;
+  }
+
+  checkSavedState(storageKey);
+}
+
 // ── State persistence ─────────────────────────────────────────────────────────
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch { return null; }
+function loadState(key) {
+  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; }
+  catch { return null; }
 }
 
 function saveState() {
-  const state = {
-    date:     getTodayStr(),
-    playerId: todayPlayer.id,
-    guesses,
-    gameOver
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const key = currentMode === 'shot' ? STORAGE_KEY_SHOT : STORAGE_KEY_CELEB;
+  localStorage.setItem(key, JSON.stringify({
+    date: getTodayStr(), playerId: todayPlayer.id, guesses, gameOver
+  }));
 }
 
-function checkSavedState() {
-  const saved = loadState();
+function checkSavedState(key) {
+  const saved = loadState(key);
   if (saved && saved.date === getTodayStr() && saved.playerId === todayPlayer.id) {
     guesses  = saved.guesses;
     gameOver = saved.gameOver;
-    renderGame();
-    if (gameOver) showResult(false);
-  } else {
-    renderGame();
   }
+  renderGame();
+  if (gameOver) showResult(false);
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
 function renderGame() {
-  // Show silhouette card
   document.getElementById('silo-card').style.display = '';
   const vid = document.getElementById('silo-video');
+
+  const folder = currentMode === 'shot' ? 'silhouettes' : 'celebrations';
   if (!gameOver) {
-    vid.src = `silhouettes/${todayPlayer.id}.mp4`;
+    vid.src = `${folder}/${todayPlayer.id}.mp4`;
   } else {
     vid.src = `reveals/${todayPlayer.id}.mp4`;
   }
   vid.load(); vid.play();
 
+  // View badge (front/back) — only for shots, only before game over
+  const vb = document.getElementById('view-badge');
+  if (currentMode === 'shot' && todayView && !gameOver) {
+    vb.textContent = todayView === 'front' ? 'Front view' : 'Back view';
+    vb.classList.add('show');
+  } else {
+    vb.classList.remove('show');
+  }
+
   // Guesses remaining
   const remaining = MAX_GUESSES - guesses.length;
-  document.getElementById('guesses-left').innerHTML = `<strong>${remaining}</strong> guess${remaining === 1 ? '' : 'es'} left`;
+  const gl = document.getElementById('guesses-left');
+  gl.innerHTML = `<strong>${remaining}</strong> guess${remaining===1?'':'es'} left`;
+  gl.style.display = gameOver ? 'none' : '';
 
-  // Render guess rows
+  // Guess rows
   const list = document.getElementById('guess-list');
   list.innerHTML = '';
   for (let i = 0; i < MAX_GUESSES; i++) {
@@ -329,24 +389,26 @@ function renderGame() {
       const g = guesses[i];
       row.className = `guess-row ${g.correct ? 'correct' : 'wrong'}`;
       row.innerHTML = `
-        <span class="guess-num">${i + 1}</span>
+        <span class="guess-num">${i+1}</span>
         <span class="guess-name">${g.name}</span>
         <span class="guess-result">${g.correct ? '✓' : '✗'}</span>`;
     } else {
       row.className = 'guess-row empty';
-      row.innerHTML = `<span class="guess-num">${i + 1}</span><span class="guess-name" style="color:var(--border)">—</span>`;
+      row.innerHTML = `<span class="guess-num">${i+1}</span><span class="guess-name" style="color:var(--border)">—</span>`;
     }
     list.appendChild(row);
   }
 
-  // Show/hide input and results button
+  // Input
+  const inp = document.getElementById('guess-input');
   if (!gameOver) {
     document.getElementById('input-area').style.display = 'flex';
-    document.getElementById('btn-see-results').style.display = 'none';
+    document.getElementById('btn-see-results').classList.remove('show');
+    inp.disabled = false;
+    inp.value = '';
   } else {
     document.getElementById('input-area').style.display = 'none';
-    document.getElementById('guesses-left').style.display = 'none';
-    document.getElementById('btn-see-results').style.display = 'block';
+    document.getElementById('btn-see-results').classList.add('show');
   }
 }
 
@@ -360,27 +422,66 @@ function submitGuess(player) {
   if (gameOver) return;
   const correct = player.id === todayPlayer.id;
   guesses.push({ name: player.name, correct });
-
-  if (correct || guesses.length >= MAX_GUESSES) {
-    gameOver = true;
-  }
-
+  if (correct || guesses.length >= MAX_GUESSES) gameOver = true;
   saveState();
   renderGame();
-
-  if (gameOver) {
-    setTimeout(() => showResult(true), 600);
-  }
-
+  if (gameOver) setTimeout(() => openModal(), 600);
   document.getElementById('guess-input').value = '';
   closeDropdown();
 }
 
-// ── Result screen ─────────────────────────────────────────────────────────────
+// ── Autocomplete ──────────────────────────────────────────────────────────────
+
+const inp      = document.getElementById('guess-input');
+const dropdown = document.getElementById('dropdown');
+
+function getSuggestions(query) {
+  if (!query || query.length < 2) return [];
+  const q = norm(query);
+  return allPlayers.filter(p => {
+    const n = norm(p.name);
+    return n.startsWith(q) || n.split(' ').some(w => w.startsWith(q));
+  }).slice(0, 6);
+}
+
+function renderDropdown(suggestions) {
+  if (!suggestions.length) { closeDropdown(); return; }
+  dropdown.innerHTML = suggestions.map((p,i) => `
+    <div class="dropdown-item" data-index="${i}">
+      <span>${p.name}</span>
+      <span class="item-meta">${p.country || ''} · #${p.rank}</span>
+    </div>`).join('');
+  dropdown.classList.add('open');
+  highlightedIndex = -1;
+  dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('mousedown', e => {
+      e.preventDefault();
+      submitGuess(suggestions[parseInt(item.dataset.index)]);
+    });
+  });
+}
+
+function closeDropdown() {
+  dropdown.classList.remove('open');
+  dropdown.innerHTML = '';
+  highlightedIndex = -1;
+}
+
+inp.addEventListener('input', () => { if (!gameOver) renderDropdown(getSuggestions(inp.value)); });
+inp.addEventListener('keydown', e => {
+  if (gameOver) return;
+  const items = dropdown.querySelectorAll('.dropdown-item');
+  if (e.key === 'ArrowDown') { e.preventDefault(); highlightedIndex = Math.min(highlightedIndex+1, items.length-1); items.forEach((el,i) => el.classList.toggle('highlighted', i===highlightedIndex)); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); highlightedIndex = Math.max(highlightedIndex-1, 0); items.forEach((el,i) => el.classList.toggle('highlighted', i===highlightedIndex)); }
+  else if (e.key === 'Enter' && highlightedIndex >= 0) { e.preventDefault(); items[highlightedIndex].dispatchEvent(new Event('mousedown')); }
+  else if (e.key === 'Escape') closeDropdown();
+});
+inp.addEventListener('blur', () => setTimeout(closeDropdown, 150));
+
+// ── Result modal ──────────────────────────────────────────────────────────────
 
 function showResult(animate) {
   const won = guesses.some(g => g.correct);
-
   document.getElementById('result-label').textContent = won ? '🎉 Correct!' : 'The player was';
   document.getElementById('result-name').textContent  = todayPlayer.name;
   document.getElementById('result-rank').textContent  = `ATP Rank #${todayPlayer.rank} · ${todayPlayer.country}`;
@@ -392,95 +493,39 @@ function showResult(animate) {
   updateCountdown();
   setInterval(updateCountdown, 1000);
 
-  document.getElementById('result-modal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-  window.scrollTo(0, 0);
-
-  // Swap video to reveal
+  // Swap to reveal
   const vid = document.getElementById('silo-video');
   vid.src = `reveals/${todayPlayer.id}.mp4`;
   vid.load(); vid.play();
+  document.getElementById('view-badge').classList.remove('show');
   document.getElementById('guesses-left').style.display = 'none';
 }
 
-// ── Share ─────────────────────────────────────────────────────────────────────
+function openModal() {
+  showResult(true);
+  document.getElementById('result-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  window.scrollTo(0,0);
+}
+
+function closeModal() {
+  document.getElementById('result-modal').classList.remove('show');
+  document.body.style.overflow = '';
+}
 
 document.getElementById('btn-share').addEventListener('click', () => {
-  const won     = guesses.some(g => g.correct);
-  const dayIdx  = getDayIndex() + 1;
-  const score   = won ? guesses.length : 'X';
+  const won    = guesses.some(g => g.correct);
+  const dayIdx = getDayIndex() + 1;
+  const score  = won ? guesses.length : 'X';
+  const label  = currentMode === 'shot' ? 'Shot' : 'Celebration';
   const squares = guesses.map(g => g.correct ? '🟩' : '🟥').join('');
-  const text    = `Silhouette #${dayIdx} ${score}/${MAX_GUESSES}\n${squares}\ncourtsideconversation-ctrl.github.io/Game-Hub/`;
+  const text   = `Silhouette ${label} #${dayIdx} ${score}/${MAX_GUESSES}\n${squares}\ncourtsideconversation-ctrl.github.io/Game-Hub/`;
   navigator.clipboard.writeText(text).then(() => {
     document.getElementById('btn-share').textContent = 'Copied! ✓';
     setTimeout(() => document.getElementById('btn-share').textContent = 'Share result', 2000);
   });
 });
 
-// ── Autocomplete ──────────────────────────────────────────────────────────────
-
-const inp      = document.getElementById('guess-input');
-const dropdown = document.getElementById('dropdown');
-
-function getSuggestions(query) {
-  if (!query || query.length < 2) return [];
-  const q = norm(query);
-  return allPlayers.filter(p => {
-    const n     = norm(p.name);
-    const parts = n.split(' ');
-    return n.startsWith(q) || parts.some(part => part.startsWith(q));
-  }).slice(0, 6);
-}
-
-function renderDropdown(suggestions) {
-  if (suggestions.length === 0) { closeDropdown(); return; }
-  dropdown.innerHTML = suggestions.map((p, i) => `
-    <div class="dropdown-item" data-index="${i}">
-      <span>${p.name}</span>
-      <span class="item-meta">${p.country} · #${p.rank}</span>
-    </div>`).join('');
-  dropdown.classList.add('open');
-  highlightedIndex = -1;
-  dropdown.querySelectorAll('.dropdown-item').forEach(item => {
-    item.addEventListener('mousedown', e => {
-      e.preventDefault();
-      const idx = parseInt(item.dataset.index);
-      submitGuess(suggestions[idx]);
-    });
-  });
-}
-
-function closeDropdown() {
-  dropdown.classList.remove('open');
-  dropdown.innerHTML = '';
-  highlightedIndex = -1;
-}
-
-inp.addEventListener('input', () => {
-  renderDropdown(getSuggestions(inp.value));
-});
-
-inp.addEventListener('keydown', e => {
-  const items = dropdown.querySelectorAll('.dropdown-item');
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    highlightedIndex = Math.min(highlightedIndex + 1, items.length - 1);
-    items.forEach((el, i) => el.classList.toggle('highlighted', i === highlightedIndex));
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    highlightedIndex = Math.max(highlightedIndex - 1, 0);
-    items.forEach((el, i) => el.classList.toggle('highlighted', i === highlightedIndex));
-  } else if (e.key === 'Enter' && highlightedIndex >= 0) {
-    e.preventDefault();
-    items[highlightedIndex].dispatchEvent(new Event('mousedown'));
-  } else if (e.key === 'Escape') {
-    closeDropdown();
-  }
-});
-
-inp.addEventListener('blur', () => setTimeout(closeDropdown, 150));
-
-// ── Start ─────────────────────────────────────────────────────────────────────
 init();
 </script>
 </body>
