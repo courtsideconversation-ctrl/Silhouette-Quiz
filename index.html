@@ -162,20 +162,18 @@
 
 
   .hint-overlay {
-    position: absolute; bottom: 48px; left: 0; right: 0;
     display: none; align-items: center; justify-content: center; gap: 10px;
-    padding: 10px 14px; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
-    font-size: 14px; font-weight: 600; color: var(--text);
+    padding: 10px 14px; background: var(--surface); border: 1px solid #e0a030;
+    border-radius: var(--radius); font-size: 14px; font-weight: 600; color: var(--text);
   }
   .hint-overlay.show { display: flex; }
   .hint-overlay .hint-label { font-size: 12px; color: var(--muted); }
   .flag-dot { width: 18px; height: 18px; border-radius: 50%; display: inline-block; border: 1px solid rgba(255,255,255,0.2); }
   .hint-btn {
-    position: absolute; bottom: 10px; left: 12px;
-    background: rgba(0,0,0,0.7); border: 1px solid var(--border);
-    border-radius: 6px; padding: 5px 12px; font-size: 12px;
+    width: 100%; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); font-size: 14px; font-weight: 500;
     color: var(--muted); cursor: pointer; font-family: var(--font-body);
-    backdrop-filter: blur(4px); transition: border-color 0.15s, color 0.15s;
+    transition: border-color 0.15s, color 0.15s; text-align: center;
   }
   .hint-btn:hover { border-color: var(--accent); color: var(--accent); }
   .hint-btn.used { display: none; }
@@ -206,9 +204,11 @@
     </div>
     <div class="view-badge" id="view-badge"></div>
     <div class="guesses-left" id="guesses-left"></div>
-    <div class="hint-overlay" id="hint-overlay"></div>
-    <button class="hint-btn" id="hint-btn" onclick="useHint()">Hint (costs 1 guess)</button>
   </div>
+
+  <!-- Hint controls (below card) -->
+  <button class="hint-btn" id="hint-btn" onclick="useHint()">Hint (costs 1 guess)</button>
+  <div class="hint-overlay" id="hint-overlay"></div>
 
   <!-- Input -->
   <div class="input-wrap" id="input-area" style="display:none">
@@ -319,6 +319,8 @@ function loadMode(mode) {
 
   if (order.length === 0) {
     document.getElementById('silo-card').style.display = 'none';
+    document.getElementById('hint-btn').style.display = 'none';
+    document.getElementById('hint-overlay').classList.remove('show');
     document.getElementById('input-area').style.display = 'none';
     document.getElementById('guess-list').innerHTML = '';
     document.getElementById('btn-see-results').classList.remove('show');
@@ -397,6 +399,7 @@ function renderGame() {
 
   // Hint button
   const hintBtn = document.getElementById('hint-btn');
+  hintBtn.style.display = '';
   const hintLabels = ['Hint 1: Background (costs 1 guess)', 'Hint 2: Continent (costs 1 guess)', 'Hint 3: Flag colors (costs 1 guess)'];
   if (gameOver || hintsUsed >= 3) {
     hintBtn.classList.add('used');
