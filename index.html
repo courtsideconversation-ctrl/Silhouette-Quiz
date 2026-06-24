@@ -226,6 +226,7 @@ let shotOrder   = [];   // [{id, view}] — view is 'front'|'back'|null
 let celebOrder  = [];   // [{id}]
 let todayPlayer = null;
 let todayView   = null; // 'front' | 'back' | null
+let todayClip   = 1;    // clip number
 let guesses     = [];
 let gameOver    = false;
 let highlightedIndex = -1;
@@ -313,6 +314,7 @@ function loadMode(mode) {
   const entry   = order[dayIdx % order.length];
   const todayId = typeof entry === 'object' ? entry.id : entry;
   todayView     = (typeof entry === 'object' && entry.view) ? entry.view : null;
+  todayClip     = (typeof entry === 'object' && entry.clip) ? entry.clip : 1;
   todayPlayer   = allPlayers.find(p => Number(p.id) === Number(todayId));
   guesses       = [];
   gameOver      = false;
@@ -337,13 +339,13 @@ function loadState(key) {
 function saveState() {
   const key = currentMode === 'shot' ? STORAGE_KEY_SHOT : STORAGE_KEY_CELEB;
   localStorage.setItem(key, JSON.stringify({
-    date: getTodayStr(), playerId: todayPlayer.id, guesses, gameOver
+    date: getTodayStr(), playerId: todayPlayer.id, clip: todayClip, guesses, gameOver
   }));
 }
 
 function checkSavedState(key) {
   const saved = loadState(key);
-  if (saved && saved.date === getTodayStr() && saved.playerId === todayPlayer.id) {
+  if (saved && saved.date === getTodayStr() && saved.playerId === todayPlayer.id && (saved.clip || 1) === todayClip) {
     guesses  = saved.guesses;
     gameOver = saved.gameOver;
   }
@@ -359,9 +361,9 @@ function renderGame() {
 
   const folder = currentMode === 'shot' ? 'silhouettes' : 'celebrations';
   if (!gameOver) {
-    vid.src = `${folder}/${todayPlayer.id}.mp4`;
+    vid.src = `${folder}/${todayPlayer.id}_${todayClip}.mp4`;
   } else {
-    vid.src = `reveals-${currentMode === 'celebration' ? 'celeb' : 'shot'}/${todayPlayer.id}.mp4`;
+    vid.src = `reveals-${currentMode === 'celebration' ? 'celeb' : 'shot'}/${todayPlayer.id}_${todayClip}.mp4`;
   }
   vid.load(); vid.play();
 
@@ -495,7 +497,7 @@ function showResult(animate) {
 
   // Swap to reveal
   const vid = document.getElementById('silo-video');
-  vid.src = `reveals-${currentMode === 'celebration' ? 'celeb' : 'shot'}/${todayPlayer.id}.mp4`;
+  vid.src = `reveals-${currentMode === 'celebration' ? 'celeb' : 'shot'}/${todayPlayer.id}_${todayClip}.mp4`;
   vid.load(); vid.play();
   document.getElementById('view-badge').classList.remove('show');
   document.getElementById('guesses-left').style.display = 'none';
