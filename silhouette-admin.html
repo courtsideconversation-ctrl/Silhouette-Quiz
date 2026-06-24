@@ -468,30 +468,147 @@ async function renderClips(id) {
   }
 
   const siloFolder   = currentTab === 'shot' ? 'silhouettes' : 'celebrations';
+  const hintFolder   = currentTab === 'shot' ? 'hints-shot' : 'hints-celeb';
   const revealFolder = currentTab === 'shot' ? 'reveals-shot' : 'reveals-celeb';
   const baseUrl      = `https://courtsideconversation-ctrl.github.io/Silhouette-Quiz`;
 
   grid.innerHTML = nums.map(n => `
     <div class="clip-pair" id="clip-${id}-${n}">
-      <div class="clip-videos">
+      <div class="clip-videos" style="grid-template-columns:1fr 1fr 1fr;">
         <div>
           <div class="clip-video-label">Silhouette</div>
           <div class="clip-video-wrap">
-            <video src="${baseUrl}/${siloFolder}/${id}_${n}.mp4" autoplay loop muted playsinline></video>
+            <video src="${baseUrl}/${siloFolder}/${id}_${n}.mp4?t=${Date.now()}" autoplay loop muted playsinline></video>
+          </div>
+        </div>
+        <div>
+          <div class="clip-video-label">Hint</div>
+          <div class="clip-video-wrap">
+            <video src="${baseUrl}/${hintFolder}/${id}_${n}.mp4?t=${Date.now()}" autoplay loop muted playsinline onerror="this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:var(--muted)\'>No hint</div>'"></video>
           </div>
         </div>
         <div>
           <div class="clip-video-label">Reveal</div>
           <div class="clip-video-wrap">
-            <video src="${baseUrl}/${revealFolder}/${id}_${n}.mp4" autoplay loop muted playsinline></video>
+            <video src="${baseUrl}/${revealFolder}/${id}_${n}.mp4?t=${Date.now()}" autoplay loop muted playsinline></video>
           </div>
         </div>
       </div>
       <div class="clip-footer">
         <div class="clip-info"><strong>Clip ${n}</strong></div>
-        <button class="btn-delete-clip" onclick="deleteClip(${id}, ${n})">Delete</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-delete-clip" style="border-color:var(--accent);color:var(--accent);" onclick="toggleEdit(${id}, ${n})">Edit</button>
+          <button class="btn-delete-clip" onclick="deleteClip(${id}, ${n})">Delete</button>
+        </div>
+      </div>
+      <!-- Edit panel (hidden by default) -->
+      <div id="edit-${id}-${n}" style="display:none;padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;color:var(--muted);">Replace individual files — only drop files you want to update.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">New silhouette</div>
+            <div class="drop-zone" id="edit-silo-${id}-${n}" style="padding:10px;min-height:60px;">
+              <input type="file" accept="video/mp4,video/*" onchange="handleEditFile(${id},${n},'silo',this.files[0])">
+              <div class="drop-zone-text" style="font-size:11px;"><strong>Drop or click</strong></div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">New hint</div>
+            <div class="drop-zone" id="edit-hint-${id}-${n}" style="padding:10px;min-height:60px;">
+              <input type="file" accept="video/mp4,video/*" onchange="handleEditFile(${id},${n},'hint',this.files[0])">
+              <div class="drop-zone-text" style="font-size:11px;"><strong>Drop or click</strong></div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">New reveal</div>
+            <div class="drop-zone" id="edit-reveal-${id}-${n}" style="padding:10px;min-height:60px;">
+              <input type="file" accept="video/mp4,video/*" onchange="handleEditFile(${id},${n},'reveal',this.files[0])">
+              <div class="drop-zone-text" style="font-size:11px;"><strong>Drop or click</strong></div>
+            </div>
+          </div>
+        </div>
+        <div id="edit-progress-${id}-${n}" style="font-size:12px;color:var(--muted);display:none;"></div>
+        <button class="btn-upload" style="padding:10px;font-size:13px;" onclick="saveEdit(${id},${n})" disabled id="edit-btn-${id}-${n}">Save changes</button>
       </div>
     </div>`).join('');
+
+  // Re-hide edit panels (innerHTML reset them to display:none via style attr, but need to confirm)
+  nums.forEach(n => {
+    const ep = document.getElementById(`edit-${id}-${n}`);
+    if (ep) ep.style.display = 'none';
+  });
+}
+
+// Track pending edit files: { "id_clip": { silo, hint, reveal } }
+const editPending = {};
+
+function toggleEdit(id, n) {
+  const ep = document.getElementById(`edit-${id}-${n}`);
+  ep.style.display = ep.style.display === 'none' ? 'flex' : 'none';
+  ep.style.flexDirection = 'column';
+}
+
+function handleEditFile(id, n, type, file) {
+  if (!file) return;
+  const key = `${id}_${n}`;
+  if (!editPending[key]) editPending[key] = {};
+  editPending[key][type] = file;
+  const dz = document.getElementById(`edit-${type}-${id}-${n}`);
+  if (dz) {
+    dz.classList.add('has-file');
+    dz.querySelector('.drop-zone-text').innerHTML = `<strong>✓ ${file.name}</strong>`;
+  }
+  // Enable save button if any file selected
+  const btn = document.getElementById(`edit-btn-${id}-${n}`);
+  if (btn) btn.disabled = !Object.keys(editPending[key] || {}).length;
+}
+
+async function saveEdit(id, n) {
+  const key     = `${id}_${n}`;
+  const pending = editPending[key] || {};
+  if (!Object.keys(pending).length) return;
+
+  const btn      = document.getElementById(`edit-btn-${id}-${n}`);
+  const progress = document.getElementById(`edit-progress-${id}-${n}`);
+  btn.disabled   = true;
+  progress.style.display = 'block';
+
+  const siloFolder   = currentTab === 'shot' ? 'silhouettes' : 'celebrations';
+  const hintFolder   = currentTab === 'shot' ? 'hints-shot' : 'hints-celeb';
+  const revealFolder = currentTab === 'shot' ? 'reveals-shot' : 'reveals-celeb';
+  const fileKey      = `${id}_${n}`;
+
+  try {
+    if (pending.silo) {
+      progress.innerHTML = 'Uploading silhouette…';
+      const b64 = await fileToBase64(pending.silo);
+      const sha = await ghGetSha(`${siloFolder}/${fileKey}.mp4`);
+      await ghPut(`${siloFolder}/${fileKey}.mp4`, b64, `Replace silhouette ${fileKey}`, sha);
+    }
+    if (pending.hint) {
+      progress.innerHTML = 'Uploading hint…';
+      const b64 = await fileToBase64(pending.hint);
+      const sha = await ghGetSha(`${hintFolder}/${fileKey}.mp4`);
+      await ghPut(`${hintFolder}/${fileKey}.mp4`, b64, `Replace hint ${fileKey}`, sha);
+    }
+    if (pending.reveal) {
+      progress.innerHTML = 'Uploading reveal…';
+      const b64 = await fileToBase64(pending.reveal);
+      const sha = await ghGetSha(`${revealFolder}/${fileKey}.mp4`);
+      await ghPut(`${revealFolder}/${fileKey}.mp4`, b64, `Replace reveal ${fileKey}`, sha);
+    }
+
+    delete editPending[key];
+    progress.innerHTML = '<span style="color:var(--correct)">✓ Saved!</span>';
+    btn.disabled = false;
+
+    // Reload clip previews
+    setTimeout(() => renderClips(id), 1500);
+
+  } catch(e) {
+    progress.innerHTML = `<span style="color:var(--wrong)">✗ Error: ${e.message}</span>`;
+    btn.disabled = false;
+  }
 }
 
 function closeModal() {
