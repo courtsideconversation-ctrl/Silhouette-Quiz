@@ -289,11 +289,28 @@ function checkPassword() {
     document.getElementById('gate-error').textContent = 'Enter a valid GitHub token (starts with ghp_).';
     return;
   }
+  unlockAdmin(token);
+}
+
+function unlockAdmin(token) {
   GITHUB_TOKEN = token;
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display  = 'block';
   loadData();
 }
+
+// Auto-login if token passed via URL hash from backend hub
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#token=')) {
+    const token = decodeURIComponent(hash.slice(7));
+    if (token.startsWith('ghp_')) {
+      unlockAdmin(token);
+      // Clear hash so token isn't visible in URL
+      history.replaceState(null, '', window.location.pathname);
+    }
+  }
+});
 
 // ── GitHub API ─────────────────────────────────────────────────────────────────
 function ghHeaders() {
