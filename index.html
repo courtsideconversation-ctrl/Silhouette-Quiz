@@ -159,8 +159,15 @@
   .btn-see-results.show { display: block; }
   .btn-see-results:hover { background: var(--accent-dim); }
 
-  .loading-msg { text-align: center; color: var(--muted); padding: 40px 0; font-size: 15px; }
-  .error-msg   { text-align: center; color: var(--wrong); padding: 20px 0; font-size: 14px; line-height: 1.6; }
+  .hint-btn {
+    position: absolute; bottom: 10px; left: 12px;
+    background: rgba(0,0,0,0.7); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 12px; font-size: 12px;
+    color: var(--muted); cursor: pointer; font-family: var(--font-body);
+    backdrop-filter: blur(4px); transition: border-color 0.15s, color 0.15s;
+  }
+  .hint-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .hint-btn.used { display: none; }
 </style>
 </head>
 <body>
@@ -188,6 +195,7 @@
     </div>
     <div class="view-badge" id="view-badge"></div>
     <div class="guesses-left" id="guesses-left"></div>
+    <button class="hint-btn" id="hint-btn" onclick="useHint()">Use hint</button>
   </div>
 
   <!-- Input -->
@@ -229,6 +237,7 @@ let todayView   = null; // 'front' | 'back' | null
 let todayClip   = 1;    // clip number
 let guesses     = [];
 let gameOver    = false;
+let hintUsed    = false;
 let highlightedIndex = -1;
 let currentMode = 'shot'; // 'shot' | 'celebration'
 
@@ -318,6 +327,7 @@ function loadMode(mode) {
   todayPlayer   = allPlayers.find(p => Number(p.id) === Number(todayId));
   guesses       = [];
   gameOver      = false;
+  hintUsed      = false;
   highlightedIndex = -1;
 
   if (!todayPlayer) {
@@ -339,7 +349,7 @@ function loadState(key) {
 function saveState() {
   const key = currentMode === 'shot' ? STORAGE_KEY_SHOT : STORAGE_KEY_CELEB;
   localStorage.setItem(key, JSON.stringify({
-    date: getTodayStr(), playerId: todayPlayer.id, clip: todayClip, guesses, gameOver
+    date: getTodayStr(), playerId: todayPlayer.id, clip: todayClip, guesses, gameOver, hintUsed
   }));
 }
 
@@ -348,6 +358,7 @@ function checkSavedState(key) {
   if (saved && saved.date === getTodayStr() && saved.playerId === todayPlayer.id && (saved.clip || 1) === todayClip) {
     guesses  = saved.guesses;
     gameOver = saved.gameOver;
+    hintUsed = saved.hintUsed || false;
   }
   renderGame();
   if (gameOver) showResult(false);
@@ -360,12 +371,25 @@ function renderGame() {
   const vid = document.getElementById('silo-video');
 
   const folder = currentMode === 'shot' ? 'silhouettes' : 'celebrations';
+  const hintFolder = currentMode === 'shot' ? 'hints-shot' : 'hints-celeb';
   if (!gameOver) {
-    vid.src = `${folder}/${todayPlayer.id}_${todayClip}.mp4`;
+    if (hintUsed) {
+      vid.src = `${hintFolder}/${todayPlayer.id}_${todayClip}.mp4`;
+    } else {
+      vid.src = `${folder}/${todayPlayer.id}_${todayClip}.mp4`;
+    }
   } else {
     vid.src = `reveals-${currentMode === 'celebration' ? 'celeb' : 'shot'}/${todayPlayer.id}_${todayClip}.mp4`;
   }
   vid.load(); vid.play();
+
+  // Hint button
+  const hintBtn = document.getElementById('hint-btn');
+  if (gameOver || hintUsed) {
+    hintBtn.classList.add('used');
+  } else {
+    hintBtn.classList.remove('used');
+  }
 
   // View badge (front/back) — only for shots, only before game over
   const vb = document.getElementById('view-badge');
@@ -412,6 +436,17 @@ function renderGame() {
     document.getElementById('input-area').style.display = 'none';
     document.getElementById('btn-see-results').classList.add('show');
   }
+}
+
+function useHint() {
+  if (hintUsed || gameOver) return;
+  hintUsed = true;
+  saveState();
+  const hintFolder = currentMode === 'shot' ? 'hints-shot' : 'hints-celeb';
+  const vid = document.getElementById('silo-video');
+  vid.src = `${hintFolder}/${todayPlayer.id}_${todayClip}.mp4`;
+  vid.load(); vid.play();
+  document.getElementById('hint-btn').classList.add('used');
 }
 
 // ── Guess logic ───────────────────────────────────────────────────────────────
@@ -484,10 +519,14 @@ inp.addEventListener('blur', () => setTimeout(closeDropdown, 150));
 
 function showResult(animate) {
   const won = guesses.some(g => g.correct);
-  document.getElementById('result-label').textContent = won ? '🎉 Correct!' : 'The player was';
+  document.getElementById('result-label').textContent = won ? 'Correct!' : 'The player was';
   document.getElementById('result-name').textContent  = todayPlayer.name;
   document.getElementById('result-rank').textContent  = `ATP Rank #${todayPlayer.rank} · ${todayPlayer.country}`;
-  document.getElementById('result-squares').textContent = guesses.map(g => g.correct ? '🟩' : '🟥').join('');
+  const squares = guesses.map(g => {
+    if (g.correct) return hintUsed ? '🟨' : '🟩';
+    return '🟥';
+  }).join('');
+  document.getElementById('result-squares').textContent = squares;
 
   function updateCountdown() {
     document.getElementById('next-puzzle').innerHTML = `Next puzzle in <strong>${getTimeUntilMidnight()}</strong>`;
@@ -530,7 +569,10 @@ document.getElementById('btn-share').addEventListener('click', () => {
   const dayIdx = getDayIndex() + 1;
   const score  = won ? guesses.length : 'X';
   const label  = currentMode === 'shot' ? 'Shot' : 'Celebration';
-  const squares = guesses.map(g => g.correct ? '🟩' : '🟥').join('');
+  const squares = guesses.map(g => {
+    if (g.correct) return hintUsed ? '🟨' : '🟩';
+    return '🟥';
+  }).join('');
   const text   = `Silhouette ${label} #${dayIdx} ${score}/${MAX_GUESSES}\n${squares}\ncourtsideconversation-ctrl.github.io/Game-Hub/`;
   navigator.clipboard.writeText(text).then(() => {
     document.getElementById('btn-share').textContent = 'Copied! ✓';

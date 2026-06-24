@@ -226,12 +226,19 @@
         </div>
       </div>
 
-      <div class="upload-row">
+      <div class="upload-row" style="grid-template-columns:1fr 1fr 1fr;">
         <div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:6px;" id="silo-label">Silhouette MP4</div>
           <div class="drop-zone" id="silo-drop">
             <input type="file" accept="video/mp4,video/*" onchange="handleFile('silo',this.files[0])">
             <div class="drop-zone-text"><strong>Drop or click</strong>silhouette MP4</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;" id="hint-label">Hint MP4</div>
+          <div class="drop-zone" id="hint-drop">
+            <input type="file" accept="video/mp4,video/*" onchange="handleFile('hint',this.files[0])">
+            <div class="drop-zone-text"><strong>Drop or click</strong>hint MP4</div>
           </div>
         </div>
         <div>
@@ -261,6 +268,7 @@ let currentTab    = 'shot'; // 'shot' | 'celebration'
 let selectedPlayer = null;
 let selectedView  = null;
 let pendingSilo   = null;
+let pendingHint   = null;
 let pendingReveal = null;
 
 // Track existing clips per player per mode: { id: [1,2,...] }
@@ -427,13 +435,15 @@ async function openModal(id) {
     ? 'Upload a shot silhouette and its reveal clip together.'
     : 'Upload a celebration silhouette and its reveal clip together.';
   document.getElementById('silo-label').textContent  = currentTab === 'shot' ? 'Shot silhouette MP4' : 'Celebration silhouette MP4';
+  document.getElementById('hint-label').textContent  = currentTab === 'shot' ? 'Shot hint MP4' : 'Celebration hint MP4';
   document.getElementById('reveal-label').textContent = currentTab === 'shot' ? 'Shot reveal MP4' : 'Celebration reveal MP4';
 
   // Reset drop zones
-  ['silo', 'reveal'].forEach(type => {
+  ['silo', 'hint', 'reveal'].forEach(type => {
     const dz = document.getElementById(`${type}-drop`);
+    if (!dz) return;
     dz.classList.remove('has-file');
-    dz.querySelector('.drop-zone-text').innerHTML = `<strong>Drop or click</strong>${type === 'silo' ? 'silhouette' : 'reveal'} MP4`;
+    dz.querySelector('.drop-zone-text').innerHTML = `<strong>Drop or click</strong>${type} MP4`;
     dz.querySelector('input').value = '';
   });
   document.getElementById('upload-progress').classList.remove('show');
@@ -502,16 +512,20 @@ function setView(v) {
 function handleFile(type, file) {
   if (!file) return;
   if (type === 'silo')   pendingSilo   = file;
+  if (type === 'hint')   pendingHint   = file;
   if (type === 'reveal') pendingReveal = file;
   const dz = document.getElementById(`${type}-drop`);
-  dz.classList.add('has-file');
-  dz.querySelector('.drop-zone-text').innerHTML = `<strong>✓ ${file.name}</strong>`;
+  if (dz) {
+    dz.classList.add('has-file');
+    dz.querySelector('.drop-zone-text').innerHTML = `<strong>✓ ${file.name}</strong>`;
+  }
   const viewOk = currentTab !== 'shot' || selectedView !== null;
   document.getElementById('btn-upload').disabled = !(pendingSilo && pendingReveal && viewOk);
 }
 
-['silo', 'reveal'].forEach(type => {
+['silo', 'hint', 'reveal'].forEach(type => {
   const dz = document.getElementById(`${type}-drop`);
+  if (!dz) return;
   dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
   dz.addEventListener('drop', e => {
@@ -537,6 +551,7 @@ async function uploadClip() {
     const key      = `${id}_${nextClip}`;
 
     const siloFolder   = currentTab === 'shot' ? 'silhouettes' : 'celebrations';
+    const hintFolder   = currentTab === 'shot' ? 'hints-shot' : 'hints-celeb';
     const revealFolder = currentTab === 'shot' ? 'reveals-shot' : 'reveals-celeb';
     const orderFile    = currentTab === 'shot' ? 'data/shot_order.json' : 'data/celebration_order.json';
 
@@ -544,6 +559,13 @@ async function uploadClip() {
     const siloB64 = await fileToBase64(pendingSilo);
     const siloSha = await ghGetSha(`${siloFolder}/${key}.mp4`);
     await ghPut(`${siloFolder}/${key}.mp4`, siloB64, `Add ${currentTab} silhouette for ${selectedPlayer.name} clip ${nextClip}`, siloSha);
+
+    if (pendingHint) {
+      progress.innerHTML = `Uploading hint (clip ${nextClip})…`;
+      const hintB64 = await fileToBase64(pendingHint);
+      const hintSha = await ghGetSha(`${hintFolder}/${key}.mp4`);
+      await ghPut(`${hintFolder}/${key}.mp4`, hintB64, `Add ${currentTab} hint for ${selectedPlayer.name} clip ${nextClip}`, hintSha);
+    }
 
     progress.innerHTML = `Uploading reveal (clip ${nextClip})…`;
     const revB64 = await fileToBase64(pendingReveal);
@@ -556,7 +578,7 @@ async function uploadClip() {
     let order = [];
     if (orderRes.ok) {
       const orderData = await orderRes.json();
-      order = JSON.parse(atob(orderData.content.replace(/\n/g, '')));
+      order = JSON.parse(decodeURIComponent(escape(atob(orderData.content.replace(/[\r\n]/g, '')))));
     }
     const entry = currentTab === 'shot'
       ? { id: Number(id), clip: nextClip, view: selectedView }
@@ -573,13 +595,15 @@ async function uploadClip() {
     progress.innerHTML = `<span class="upload-success">✓ Clip ${nextClip} uploaded!</span>`;
     btn.disabled  = false;
     pendingSilo   = null;
+    pendingHint   = null;
     pendingReveal = null;
 
     // Reset drop zones
-    ['silo', 'reveal'].forEach(type => {
+    ['silo', 'hint', 'reveal'].forEach(type => {
       const dz = document.getElementById(`${type}-drop`);
+      if (!dz) return;
       dz.classList.remove('has-file');
-      dz.querySelector('.drop-zone-text').innerHTML = `<strong>Drop or click</strong>${type === 'silo' ? 'silhouette' : 'reveal'} MP4`;
+      dz.querySelector('.drop-zone-text').innerHTML = `<strong>Drop or click</strong>${type} MP4`;
       dz.querySelector('input').value = '';
     });
 
@@ -597,6 +621,7 @@ async function deleteClip(id, clipNum) {
   if (!confirm(`Delete clip ${clipNum} for ${selectedPlayer.name}? This will also remove it from the daily order.`)) return;
 
   const siloFolder   = currentTab === 'shot' ? 'silhouettes' : 'celebrations';
+  const hintFolder   = currentTab === 'shot' ? 'hints-shot' : 'hints-celeb';
   const revealFolder = currentTab === 'shot' ? 'reveals-shot' : 'reveals-celeb';
   const orderFile    = currentTab === 'shot' ? 'data/shot_order.json' : 'data/celebration_order.json';
   const key          = `${id}_${clipNum}`;
@@ -609,6 +634,10 @@ async function deleteClip(id, clipNum) {
     const siloSha = await ghGetSha(`${siloFolder}/${key}.mp4`);
     if (siloSha) await ghDelete(`${siloFolder}/${key}.mp4`, siloSha, `Delete ${currentTab} silhouette ${key}`);
 
+    // Delete hint (optional — may not exist)
+    const hintSha = await ghGetSha(`${hintFolder}/${key}.mp4`);
+    if (hintSha) await ghDelete(`${hintFolder}/${key}.mp4`, hintSha, `Delete ${currentTab} hint ${key}`);
+
     // Delete reveal
     const revSha = await ghGetSha(`${revealFolder}/${key}.mp4`);
     if (revSha) await ghDelete(`${revealFolder}/${key}.mp4`, revSha, `Delete ${currentTab} reveal ${key}`);
@@ -617,7 +646,7 @@ async function deleteClip(id, clipNum) {
     const orderRes = await ghGet(`contents/${orderFile}`);
     if (orderRes.ok) {
       const orderData = await orderRes.json();
-      let order = JSON.parse(atob(orderData.content.replace(/\n/g, '')));
+      let order = JSON.parse(decodeURIComponent(escape(atob(orderData.content.replace(/[\r\n]/g, '')))));
       order = order.filter(e => !(Number(e.id) === Number(id) && e.clip === clipNum));
       const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(order, null, 2))));
       const sha = await ghGetSha(orderFile);
