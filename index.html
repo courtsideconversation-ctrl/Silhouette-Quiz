@@ -512,32 +512,12 @@ function showModalNow() {
 
 function openModal() {
   showResult(true);
-  const vid = document.getElementById('silo-video');
-
-  // Remove loop so we can detect when one play finishes
-  vid.loop = false;
-
-  function onEnded() {
-    vid.removeEventListener('ended', onEnded);
-    vid.loop = true; // restore looping
+  // Show modal after 0.5s — enough to see the reveal start but not wait the full clip
+  setTimeout(() => {
     document.getElementById('result-modal').classList.add('show');
     document.body.style.overflow = 'hidden';
     window.scrollTo(0,0);
-  }
-
-  // If video hasn't loaded yet or is very short, fall back after 5s
-  const fallback = setTimeout(() => {
-    vid.removeEventListener('ended', onEnded);
-    vid.loop = true;
-    document.getElementById('result-modal').classList.add('show');
-    document.body.style.overflow = 'hidden';
-    window.scrollTo(0,0);
-  }, 5000);
-
-  vid.addEventListener('ended', () => {
-    clearTimeout(fallback);
-    onEnded();
-  });
+  }, 500);
 }
 
 function closeModal() {
