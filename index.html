@@ -405,8 +405,9 @@ function renderGame() {
     hintBtn.textContent = hintLabels[hintsUsed] || 'Hint (costs 1 guess)';
   }
   // Restore hint overlays if hints were already used
-  if (hintsUsed >= 2 && !gameOver) showContinentHint();
   if (hintsUsed >= 3 && !gameOver) showFlagHint();
+  else if (hintsUsed >= 2 && !gameOver) showContinentHint();
+  else document.getElementById('hint-overlay').classList.remove('show');
 
   // View badge (front/back) — only for shots, only before game over
   const vb = document.getElementById('view-badge');
@@ -455,6 +456,20 @@ function renderGame() {
   }
 }
 
+// ── Continent map ─────────────────────────────────────────────────────────────
+const COUNTRY_CONTINENT = {
+  ITA: 'Europe', ESP: 'Europe', GER: 'Europe', SRB: 'Europe', RUS: 'Europe',
+  NOR: 'Europe', GRE: 'Europe', GBR: 'Europe', FRA: 'Europe', SUI: 'Europe',
+  AUT: 'Europe', CRO: 'Europe', POL: 'Europe', BEL: 'Europe', NED: 'Europe',
+  CZE: 'Europe', DEN: 'Europe', FIN: 'Europe', SWE: 'Europe', POR: 'Europe',
+  HUN: 'Europe', BUL: 'Europe', ROM: 'Europe', SVK: 'Europe', UKR: 'Europe',
+  AUS: 'Oceania',
+  USA: 'North America', CAN: 'North America',
+  ARG: 'South America', BRA: 'South America', CHI: 'South America',
+  JPN: 'Asia', KAZ: 'Asia', KOR: 'Asia', TPE: 'Asia',
+  RSA: 'Africa',
+};
+
 // ── Flag color map ────────────────────────────────────────────────────────────
 const FLAG_COLORS = {
   ITA: ['#009246','#fff','#CE2B37'],
@@ -498,7 +513,7 @@ const FLAG_COLORS = {
 function showContinentHint() {
   const overlay = document.getElementById('hint-overlay');
   overlay.classList.add('show');
-  const continent = todayPlayer.continent || 'Unknown';
+  const continent = COUNTRY_CONTINENT[todayPlayer.country] || 'Unknown';
   overlay.innerHTML = `<span class="hint-label">Continent:</span><span>${continent}</span>`;
 }
 
@@ -507,7 +522,7 @@ function showFlagHint() {
   overlay.classList.add('show');
   const colors = FLAG_COLORS[todayPlayer.country] || ['#888','#888','#888'];
   const dots = colors.map(c => `<span class="flag-dot" style="background:${c}"></span>`).join('');
-  const continent = todayPlayer.continent || '';
+  const continent = COUNTRY_CONTINENT[todayPlayer.country] || '';
   overlay.innerHTML = `<span class="hint-label">Continent: ${continent} &nbsp;|&nbsp; Flag colors:</span>${dots}`;
 }
 
