@@ -385,7 +385,7 @@ function renderGame() {
   const folder = currentMode === 'shot' ? 'silhouettes' : 'celebrations';
   const hintFolder = currentMode === 'shot' ? 'hints-shot' : 'hints-celeb';
   if (!gameOver) {
-    if (hintUsed) {
+    if (hintsUsed >= 1) {
       vid.src = `${hintFolder}/${todayPlayer.id}_${todayClip}.mp4`;
     } else {
       vid.src = `${folder}/${todayPlayer.id}_${todayClip}.mp4`;
