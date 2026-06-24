@@ -221,7 +221,7 @@
       <!-- Front/back toggle — shot only -->
       <div id="view-toggle-wrap">
         <div class="view-btns">
-          <button class="view-btn active" id="vbtn-front" onclick="setView('front')">Front view</button>
+          <button class="view-btn" id="vbtn-front" onclick="setView('front')">Front view</button>
           <button class="view-btn" id="vbtn-back" onclick="setView('back')">Back view</button>
         </div>
       </div>
@@ -259,7 +259,7 @@ const BRANCH     = 'main';
 let allPlayers    = [];
 let currentTab    = 'shot'; // 'shot' | 'celebration'
 let selectedPlayer = null;
-let selectedView  = 'front';
+let selectedView  = null;
 let pendingSilo   = null;
 let pendingReveal = null;
 
@@ -411,14 +411,14 @@ async function openModal(id) {
   selectedPlayer = allPlayers.find(p => p.id === id);
   pendingSilo    = null;
   pendingReveal  = null;
-  selectedView   = 'front';
+  selectedView   = null;
 
   document.getElementById('modal-name').textContent = selectedPlayer.name;
   document.getElementById('modal-sub').textContent  = `ID: ${id} · Rank #${selectedPlayer.rank} · ${selectedPlayer.country}`;
 
   // Show/hide view toggle based on tab
   document.getElementById('view-toggle-wrap').style.display = currentTab === 'shot' ? 'block' : 'none';
-  document.getElementById('vbtn-front').classList.add('active');
+  document.getElementById('vbtn-front').classList.remove('active');
   document.getElementById('vbtn-back').classList.remove('active');
 
   // Labels
@@ -494,6 +494,8 @@ function setView(v) {
   selectedView = v;
   document.getElementById('vbtn-front').classList.toggle('active', v === 'front');
   document.getElementById('vbtn-back').classList.toggle('active',  v === 'back');
+  const viewOk = currentTab !== 'shot' || selectedView !== null;
+  document.getElementById('btn-upload').disabled = !(pendingSilo && pendingReveal && viewOk);
 }
 
 // ── File handling ─────────────────────────────────────────────────────────────
@@ -504,7 +506,8 @@ function handleFile(type, file) {
   const dz = document.getElementById(`${type}-drop`);
   dz.classList.add('has-file');
   dz.querySelector('.drop-zone-text').innerHTML = `<strong>✓ ${file.name}</strong>`;
-  document.getElementById('btn-upload').disabled = !(pendingSilo && pendingReveal);
+  const viewOk = currentTab !== 'shot' || selectedView !== null;
+  document.getElementById('btn-upload').disabled = !(pendingSilo && pendingReveal && viewOk);
 }
 
 ['silo', 'reveal'].forEach(type => {
