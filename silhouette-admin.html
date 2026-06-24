@@ -547,15 +547,19 @@ async function uploadClip() {
     const revSha = await ghGetSha(`${revealFolder}/${key}.mp4`);
     await ghPut(`${revealFolder}/${key}.mp4`, revB64, `Add ${currentTab} reveal for ${selectedPlayer.name} clip ${nextClip}`, revSha);
 
-    // Update order JSON
+    // Update order JSON — read from GitHub API to avoid cache issues
     progress.innerHTML = 'Updating order file…';
-    const orderRes = await fetch(orderFile);
-    const order = orderRes.ok ? await orderRes.json() : [];
+    const orderRes = await ghGet(`contents/${orderFile}`);
+    let order = [];
+    if (orderRes.ok) {
+      const orderData = await orderRes.json();
+      order = JSON.parse(atob(orderData.content.replace(/\n/g, '')));
+    }
     const entry = currentTab === 'shot'
       ? { id: Number(id), clip: nextClip, view: selectedView }
       : { id: Number(id), clip: nextClip };
     order.push(entry);
-    const orderB64 = btoa(JSON.stringify(order, null, 2));
+    const orderB64 = btoa(unescape(encodeURIComponent(JSON.stringify(order, null, 2))));
     const orderSha = await ghGetSha(orderFile);
     await ghPut(orderFile, orderB64, `Add ${selectedPlayer.name} clip ${nextClip} to ${currentTab} order`, orderSha);
 
@@ -606,12 +610,13 @@ async function deleteClip(id, clipNum) {
     const revSha = await ghGetSha(`${revealFolder}/${key}.mp4`);
     if (revSha) await ghDelete(`${revealFolder}/${key}.mp4`, revSha, `Delete ${currentTab} reveal ${key}`);
 
-    // Remove from order file
-    const orderRes = await fetch(orderFile);
+    // Remove from order file — read from GitHub API to avoid cache
+    const orderRes = await ghGet(`contents/${orderFile}`);
     if (orderRes.ok) {
-      let order = await orderRes.json();
+      const orderData = await orderRes.json();
+      let order = JSON.parse(atob(orderData.content.replace(/\n/g, '')));
       order = order.filter(e => !(Number(e.id) === Number(id) && e.clip === clipNum));
-      const b64 = btoa(JSON.stringify(order, null, 2));
+      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(order, null, 2))));
       const sha = await ghGetSha(orderFile);
       await ghPut(orderFile, b64, `Remove ${selectedPlayer.name} clip ${clipNum} from ${currentTab} order`, sha);
     }
