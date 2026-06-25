@@ -281,10 +281,11 @@ async function init() {
   document.getElementById('page-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   try {
+    const t = Date.now();
     const [pr, sr, cr] = await Promise.all([
       fetch('data/players.json'),
-      fetch('data/shot_order.json'),
-      fetch('data/celebration_order.json')
+      fetch(`data/shot_order.json?t=${t}`),
+      fetch(`data/celebration_order.json?t=${t}`)
     ]);
     if (!pr.ok) throw new Error('players.json missing');
 
