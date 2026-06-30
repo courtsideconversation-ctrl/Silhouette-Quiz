@@ -77,6 +77,29 @@
     border-radius: 8px; padding: 8px 14px;
   }
 
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .stats-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    padding: 12px 16px; gap: 2px;
+  }
+  .stats-val {
+    font-family: var(--font-display); font-size: 24px; font-weight: 900;
+    color: var(--accent); line-height: 1;
+  }
+  .stats-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stats-divider { width: 1px; height: 40px; background: var(--border); flex-shrink: 0; }
+
+  /* ── Modal streak ── */
+  .modal-streak {
+    font-size: 13px; color: var(--muted); text-align: center; min-height: 18px;
+  }
+  .modal-streak span { color: var(--accent); font-weight: 600; }
+
   /* ── Guess rows ── */
   .guess-list { display: flex; flex-direction: column; gap: 8px; }
   .guess-row {
@@ -192,6 +215,19 @@
     <button class="mode-btn" id="btn-mode-celebration" onclick="switchMode('celebration')">Celebration of the Day</button>
   </div>
 
+  <!-- Stats bar -->
+  <div class="stats-bar" id="stats-bar">
+    <div class="stats-item">
+      <div class="stats-val" id="stats-streak">0</div>
+      <div class="stats-label">Day Streak</div>
+    </div>
+    <div class="stats-divider"></div>
+    <div class="stats-item" id="stats-mode-count-wrap">
+      <div class="stats-val" id="stats-mode-count">0</div>
+      <div class="stats-label" id="stats-mode-label">Shots Played</div>
+    </div>
+  </div>
+
   <p class="active-note">Active ATP players only</p>
 
   <div id="loading" class="loading-msg">Loading today's puzzle…</div>
@@ -230,6 +266,7 @@
       <div class="result-name"  id="result-name"></div>
       <div class="result-rank"  id="result-rank"></div>
       <div class="result-squares" id="result-squares"></div>
+      <div class="modal-streak" id="modal-streak"></div>
       <button class="btn-share" id="btn-share">Share result</button>
       <div class="next-puzzle"  id="next-puzzle"></div>
     </div>
@@ -238,8 +275,57 @@
 
 <script>
 const MAX_GUESSES = 6;
-const STORAGE_KEY_SHOT = 'silhouette_shot';
+const STORAGE_KEY_SHOT  = 'silhouette_shot';
 const STORAGE_KEY_CELEB = 'silhouette_celebration';
+const STORAGE_KEY_STATS = 'silhouette_stats';
+
+// ── Player stats (streak + play counts) ──────────────────────────────────────
+function loadStats() {
+  try { const r = localStorage.getItem(STORAGE_KEY_STATS); return r ? JSON.parse(r) : { streak: 0, lastPlayedDate: null, shotsPlayed: 0, celebsPlayed: 0 }; }
+  catch { return { streak: 0, lastPlayedDate: null, shotsPlayed: 0, celebsPlayed: 0 }; }
+}
+
+function saveStats(stats) {
+  localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(stats));
+}
+
+function recordCompletion(mode) {
+  const stats   = loadStats();
+  const today   = getTodayStr();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+  // Only count once per day per mode
+  const modeKey = mode === 'shot' ? 'lastShotDate' : 'lastCelebDate';
+  if (stats[modeKey] === today) return; // already recorded today for this mode
+
+  stats[modeKey] = today;
+
+  // Update play count
+  if (mode === 'shot')          stats.shotsPlayed = (stats.shotsPlayed || 0) + 1;
+  else                          stats.celebsPlayed = (stats.celebsPlayed || 0) + 1;
+
+  // Update streak — streak counts any completion (shot or celeb)
+  if (stats.lastPlayedDate === today) {
+    // already played today, streak unchanged
+  } else if (stats.lastPlayedDate === yesterday) {
+    stats.streak = (stats.streak || 0) + 1;
+  } else if (stats.lastPlayedDate !== today) {
+    // missed a day or first time
+    stats.streak = 1;
+  }
+  stats.lastPlayedDate = today;
+
+  saveStats(stats);
+  renderStats();
+}
+
+function renderStats() {
+  const stats = loadStats();
+  document.getElementById('stats-streak').textContent     = stats.streak || 0;
+  const count = currentMode === 'shot' ? (stats.shotsPlayed || 0) : (stats.celebsPlayed || 0);
+  document.getElementById('stats-mode-count').textContent = count;
+  document.getElementById('stats-mode-label').textContent = currentMode === 'shot' ? 'Shots Played' : 'Celebs Played';
+}
 
 let allPlayers  = [];
 let shotOrder   = [];   // [{id, view}] — view is 'front'|'back'|null
@@ -295,6 +381,7 @@ async function init() {
 
     document.getElementById('loading').style.display = 'none';
     loadMode('shot');
+    renderStats();
   } catch(e) {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('error').style.display = 'block';
@@ -311,6 +398,7 @@ function switchMode(mode) {
   document.getElementById('btn-mode-celebration').classList.toggle('active', mode === 'celebration');
   closeModal();
   loadMode(mode);
+  renderStats();
 }
 
 function loadMode(mode) {
@@ -571,7 +659,20 @@ function submitGuess(player) {
   if (gameOver) return;
   const correct = player.id === todayPlayer.id;
   guesses.push({ name: player.name, correct });
-  if (correct || guesses.length >= MAX_GUESSES) gameOver = true;
+  if (correct || guesses.length >= MAX_GUESSES) {
+    gameOver = true;
+    recordCompletion(currentMode);
+    // Fire analytics event
+    if (window.ccTrack) {
+      ccTrack('silo_complete', 'Silhouette', {
+        result:   correct ? 'correct' : 'fail',
+        player:   todayPlayer.name,
+        mode:     currentMode,
+        guesses:  guesses.length,
+        dayIndex: getDayIndex(),
+      });
+    }
+  }
   saveState();
   renderGame();
   if (gameOver) setTimeout(() => openModal(), 600);
@@ -650,6 +751,18 @@ function showResult(animate) {
   // Hide hint overlay on game over
   document.getElementById('hint-overlay').classList.remove('show');
 
+  // Show streak in modal
+  const stats = loadStats();
+  const streak = stats.streak || 0;
+  const modalStreak = document.getElementById('modal-streak');
+  if (streak > 1) {
+    modalStreak.innerHTML = `<span>${streak} day streak</span>`;
+  } else if (streak === 1) {
+    modalStreak.innerHTML = `<span>1 day streak</span> — come back tomorrow to extend it`;
+  } else {
+    modalStreak.textContent = '';
+  }
+
   // Swap to reveal
   const vid = document.getElementById('silo-video');
   vid.src = `reveals-${currentMode === 'celebration' ? 'celeb' : 'shot'}/${todayPlayer.id}_${todayClip}.mp4`;
@@ -712,11 +825,11 @@ init();
     }
     return { id, isNew };
   }
-  function logEvent(event, game) {
+  function logEvent(event, game, extra) {
     const { id, isNew } = getVisitorId();
     fetch(ENDPOINT, {
       method: 'POST',
-      body: JSON.stringify({ visitorId: id, event, game: game || '', isNew }),
+      body: JSON.stringify({ visitorId: id, event, game: game || '', isNew, ...(extra || {}) }),
     }).catch(() => {});
   }
   window.ccTrack = logEvent;
